@@ -90,7 +90,7 @@ Planned endpoint inventory from the blueprint (verify request/response schemas b
 
 ## 4. UI/UX design intent and user flows
 
-The provided blueprint names features and behaviors; it is **not an actual screen mockup**. Before claiming mockup fidelity, add a screenshot or share link from the pair's Claude Web Artifact or Figma prototype here, and document which screens the reference covers.
+The blueprint names features and behaviors but contained no screen mockups. Four new [anonymous FairShare UI concepts](mockups/README.md) were created for HW3: [Authentication](mockups/01-auth.svg), [Group Dashboard](mockups/02-group-dashboard.svg), [Add Expense](mockups/03-add-expense.svg), and [Settlement](mockups/04-settlements.svg). These are proposed designs derived from the blueprint, **not** screenshots from an existing Claude/Figma prototype. Confirm them together before treating them as approved mockups.
 
 Expected UI surfaces (design descriptions from the blueprint, not verified screenshots):
 
@@ -104,7 +104,7 @@ Critical flow: **Register/Login → Create/Join Group → Add Expense → Choose
 
 Use mobile-first layouts, keyboard-accessible controls, visible focus, semantic HTML, and sufficient contrast. Colors must supplement readable “owes/gets back” labels.
 
-**Mockup / prototype link:** _Pending — add the actual Claude Artifact or Figma URL and reference screenshots when available. Do not manufacture this evidence._
+**Mockup reference:** [Proposed concept SVGs and implementation notes](mockups/README.md). If the team has an earlier real Claude Artifact or Figma prototype, add its URL separately, identifying its true source.
 
 ## 5. Process, evidence, and delivery
 
@@ -121,7 +121,7 @@ Use mobile-first layouts, keyboard-accessible controls, visible focus, semantic 
 3. Actual approved screen mockups and issue acceptance criteria refine behavior, when available.
 4. Any contradiction or missing detail should be surfaced to the two partners, **not silently invented**.
 
-Open questions: original UI mockup/prototype reference; global versus per-group admin authority; audit event persistence; invite-token expiration; equal split when payer is excluded; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made.
+Open questions: partner approval of the newly proposed UI mockups and whether an earlier Claude/Figma prototype exists; global versus per-group admin authority; audit event persistence; invite-token expiration; equal split when payer is excluded; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made.
 
 ### Course references
 
