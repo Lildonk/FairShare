@@ -1,0 +1,31 @@
+{
+  "name": "fairshare",
+  "version": "1.0.0",
+  "description": "CS6983 Project 2 Fair Share",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lildonk/FairShare.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Lildonk/FairShare/issues"
+  },
+  "homepage": "https://github.com/Lildonk/FairShare#readme",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.0.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
