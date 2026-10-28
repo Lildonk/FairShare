@@ -7,7 +7,7 @@
 
 FairShare is a multi-party expense sharing web app for groups, with debt simplification, four split modes, settlement tracking, an audit ledger, and an admin interface.
 
-**Before modifying code:** (1) read the active GitHub Issue and its acceptance criteria; (2) read the relevant parts of [FairShare product/UX specification](docs/FAIRSHARE_PRODUCT_SPEC.md); (3) inspect existing implementation and tests; (4) review an actual mockup/prototype when provided. Do not fabricate missing mockups, endpoints, test results, or stakeholder decisions. The PDF blueprint is the source of this readable spec; it is not currently stored in the repo.
+**Before modifying code:** (1) read the active GitHub Issue and its acceptance criteria; (2) read the relevant parts of [FairShare product/UX specification](docs/FAIRSHARE_PRODUCT_SPEC.md); (3) inspect existing implementation and tests; (4) review the [FairShare UI mockups](docs/mockups/README.md) and any later approved Figma/Claude prototype. Do not fabricate missing mockups, endpoints, test results, or stakeholder decisions. The PDF blueprint is the source of this readable spec; it is not currently stored in the repo.
 
 **Priority when requirements conflict:** course P2/HW3 grading requirements > confirmed product decisions and issue acceptance criteria > planning spec > inferred defaults. Flag conflicts and ask the two partners to decide; do not silently change intended behavior.
 
@@ -16,7 +16,7 @@ FairShare is a multi-party expense sharing web app for groups, with debt simplif
 - **Frontend:** Next.js **14+ App Router**, React, TypeScript, TailwindCSS, Lucide React.
 - **Backend:** Next.js Route Handlers with REST endpoints under `/api/v1`.
 - **Persistence:** PostgreSQL, Prisma ORM and migrations.
-- **Auth:** JWT + bcrypt (never homemade crypto); role and group membership checks.
+- **Auth:** email/password with JWT + bcrypt, plus Google sign-in using OAuth 2.0 / OpenID Connect; server-side role and group membership checks. No other social-login providers are approved.
 - **Client state:** Zustand + React Hooks for interactive previews and optimistic settlement updates.
 - **Tests:** Vitest + React Testing Library (unit/component), integration tests, Playwright (E2E).
 - **Docs/automation:** OpenAPI 3.0/Swagger at `/api/docs`, GitHub Actions, deploy previews.
@@ -51,11 +51,11 @@ Use strict TypeScript; no unjustified `any`; `PascalCase` components/types, `cam
 
 Read the flows/UI guidance in the product spec. Expected surfaces: register/login; group list; expense modal with payer, participants, EQUAL/EXACT/PERCENTAGE/ITEMIZED modes and live allocation preview; settlement board with labeled owes/gets-back chips, transfer instructions and Record Payment; audit/dispute/export; protected admin view.
 
-Match *actual* design artifacts once linked; the current feature diagram is **not** a screen mockup. If visual details are unspecified, propose a default and label it as an assumption. Use responsive Tailwind layout, semantic HTML, explicit form labels, keyboard navigation, visible focus, accessible status/error messages, and text labels in addition to red/green color.
+Use the [four proposed FairShare UI mockups](docs/mockups/README.md) as visual references; they were developed for HW3 from the product blueprint and need partner review. Confirm them with the pair before treating them as approved visual requirements. If visual details are unspecified, propose a default and label it as an assumption. Use responsive Tailwind layout, semantic HTML, explicit form labels, keyboard navigation, visible focus, accessible status/error messages, and text labels in addition to red/green color.
 
 ## Security and authorization
 
-Validate external input at API boundaries. Use Prisma/parameterized DB operations; avoid unsafe raw SQL and unsanitized HTML. Hash passwords with bcrypt; sign/verify JWTs with approved libraries and secure secrets. For browser sessions, prefer secure HttpOnly/SameSite cookies over exposing tokens to JavaScript; document any Bearer-token API flow. Never trust client-supplied role or user identity.
+Validate external input at API boundaries. Use Prisma/parameterized DB operations; avoid unsafe raw SQL and unsanitized HTML. For email/password login, hash passwords with bcrypt and sign/verify JWTs using approved libraries. For Google sign-in, use a maintained OAuth/OIDC library; verify provider-issued identity and use secure session handling. Never trust a client-submitted Google email or token without server-side verification. For browser sessions, prefer secure HttpOnly/SameSite cookies over exposing tokens to JavaScript; document any Bearer-token API flow. Never trust client-supplied role or user identity.
 
 Authenticate **and authorize** every private group query/mutation against membership; restrict admin endpoints on the server, not only the UI. The blueprint's global `User.role` versus “Group Admin” is unresolved: **ask before implementing cross-group admin powers**. Protect archived ledgers from writes, keep public calculator routes stateless and detached from private data, avoid exposing receipts/user information, and never commit `.env`, JWT secrets, or credentials. Use least-privilege configuration, safe error messages, and no secrets in logs.
 
@@ -89,4 +89,4 @@ Use Vitest for core finance logic (the blueprint targets **100% coverage** for d
 4. Run only available project scripts; give reproducible commands and accurately report test/lint/typecheck results.
 5. Finish with changed files, decisions/assumptions, unresolved criteria, and suggested commit/PR text. Human developers review, understand, and approve every AI-generated change.
 
-**Maintain this file:** Keep it concise and updated through partner-reviewed PRs. Put detailed requirements and evolving UI design in `docs/FAIRSHARE_PRODUCT_SPEC.md` rather than expanding every agent prompt.
+**Maintain this file:** Keep it concise and updated through partner-reviewed PRs. Put detailed requirements in `docs/FAIRSHARE_PRODUCT_SPEC.md` and visual screen references in `docs/mockups/README.md`, rather than expanding every agent prompt.

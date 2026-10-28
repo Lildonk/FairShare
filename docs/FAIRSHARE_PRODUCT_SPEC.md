@@ -52,7 +52,8 @@ As a member or authorized auditor, I want a transparent activity history so we c
 
 As a member, I want an account and private group access so only authorized participants see our data.
 
-- Register/login using appropriately validated credentials, bcrypt password hashes, and JWT-based authentication.
+- Support email/password registration and login with validated input, bcrypt password hashes, and JWT-based authentication.
+- Also support **Google sign-in** via established OAuth 2.0 / OpenID Connect integration. Verify the provider identity server-side and handle sign-in/session issuance safely; do not add other third-party login providers.
 - Protect every group-scoped API query with authentication **and** membership authorization.
 - Allow creating groups and joining through a secure invitation mechanism; define token expiry and permissions before implementing invites.
 - Keep private groups, receipts, settlements, and user data inaccessible from public utilities.
@@ -69,7 +70,7 @@ As an authorized admin, I want to resolve disputes and archive ledgers; as a dev
 
 ## 3. Architecture / contracts
 
-Planned stack: Next.js 14+ App Router, React, TypeScript, TailwindCSS, Lucide React; Next.js Route Handlers; PostgreSQL and Prisma; JWT and bcrypt; Zustand/React Hooks; Vitest + React Testing Library + Playwright; GitHub Actions; OpenAPI 3.0 / Swagger. **The repo has not yet been scaffolded; exact package versions must be pinned in package.json and the lockfile after setup.**
+Planned stack: Next.js 14+ App Router, React, TypeScript, TailwindCSS, Lucide React; Next.js Route Handlers; PostgreSQL and Prisma; JWT and bcrypt with Google OAuth/OIDC sign-in; Zustand/React Hooks; Vitest + React Testing Library + Playwright; GitHub Actions; OpenAPI 3.0 / Swagger. **The repo has not yet been scaffolded; exact package versions must be pinned in package.json and the lockfile after setup.**
 
 Draft relational entities: `User`, `Group`, `GroupMember`, `Expense`, `ExpenseSplit`, `Settlement`. Core money fields are integer cents. The full draft model definitions are in the original FairShare blueprint, Section 5, and need review for missing audit records and admin scope.
 
@@ -90,11 +91,11 @@ Planned endpoint inventory from the blueprint (verify request/response schemas b
 
 ## 4. UI/UX design intent and user flows
 
-The provided blueprint names features and behaviors; it is **not an actual screen mockup**. Before claiming mockup fidelity, add a screenshot or share link from the pair's Claude Web Artifact or Figma prototype here, and document which screens the reference covers.
+The blueprint names features and behaviors but contained no screen mockups. Four new [FairShare UI mockups](mockups/README.md) were created for HW3: [Authentication](mockups/01-auth.svg), [Group Dashboard](mockups/02-group-dashboard.svg), [Add Expense](mockups/03-add-expense.svg), and [Settlement](mockups/04-settlements.svg). These are proposed designs derived from the blueprint, **not** screenshots from an existing Claude/Figma prototype. The login screen includes email/password and the newly selected Google sign-in option. Confirm them together before treating them as approved mockups.
 
 Expected UI surfaces (design descriptions from the blueprint, not verified screenshots):
 
-- **Auth:** accessible register/login forms with error states.
+- **Auth:** accessible registration, email/password login, and Google sign-in with error states.
 - **Groups:** list of authorized groups; create/join group flow.
 - **Expense creation:** modal with payer, receipt amount, participant selection, split-mode controls, live allocation preview, validation, and clear submit state.
 - **Settlement board:** labeled creditor/debtor balance chips, transfer instructions, one-click payment recording; optimistic feedback.
@@ -104,7 +105,7 @@ Critical flow: **Register/Login → Create/Join Group → Add Expense → Choose
 
 Use mobile-first layouts, keyboard-accessible controls, visible focus, semantic HTML, and sufficient contrast. Colors must supplement readable “owes/gets back” labels.
 
-**Mockup / prototype link:** _Pending — add the actual Claude Artifact or Figma URL and reference screenshots when available. Do not manufacture this evidence._
+**Mockup reference:** [Proposed concept SVGs and implementation notes](mockups/README.md). If the team has an earlier real Claude Artifact or Figma prototype, add its URL separately, identifying its true source.
 
 ## 5. Process, evidence, and delivery
 
@@ -121,7 +122,7 @@ Use mobile-first layouts, keyboard-accessible controls, visible focus, semantic 
 3. Actual approved screen mockups and issue acceptance criteria refine behavior, when available.
 4. Any contradiction or missing detail should be surfaced to the two partners, **not silently invented**.
 
-Open questions: original UI mockup/prototype reference; global versus per-group admin authority; audit event persistence; invite-token expiration; equal split when payer is excluded; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made.
+Open questions: partner approval of the proposed UI mockups and whether an earlier Claude/Figma prototype exists; global versus per-group admin authority; audit event persistence; invite-token expiration; equal split when payer is excluded; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made.
 
 ### Course references
 
