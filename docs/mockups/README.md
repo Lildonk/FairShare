@@ -1,14 +1,14 @@
-# FairShare — Proposed UI Mockups (HW3)
+# FairShare — UI Mockups (HW3)
 
-These are **four newly drafted visual concepts**, based on the pair's FairShare architecture/feature blueprint. They are **not** screenshots of an already implemented app or of an earlier Claude/Figma Artifact. Review them together and use them as reference screens for Antigravity development.
+These are **four proposed UI screens**, based on the pair's FairShare architecture/feature blueprint. They are **not** screenshots of an already implemented app or of an earlier Claude/Figma Artifact. Review them together and use them as reference screens for Antigravity development.
 
-**Privacy / demo data:** all people are labeled `Member A` through `Member E`, with avatar IDs `U1`–`U5`. No real personal names or user data are included. The trip, amounts, and dates are fictional examples.
+**Sample data:** people use placeholder labels `Member A`–`Member E` and avatar IDs `U1`–`U5`; the trip, amounts, and dates are illustrative.
 
 ## Screens
 
 | Design | Preview | Behaviors required |
 | --- | --- | --- |
-| 01 — Authentication | [Open Auth SVG](01-auth.svg) | Sign in / create account, validation and error states. |
+| 01 — Authentication | [Open Auth SVG](01-auth.svg) | Email/password sign in, create account, Google sign-in, validation and error states. |
 | 02 — Group Dashboard | [Open Dashboard SVG](02-group-dashboard.svg) | Recent expenses, total amount, signed per-member net balances, and grouped navigation. |
 | 03 — Add Expense | [Open Expense Modal SVG](03-add-expense.svg) | Payer, description, receipt amount, date, participants, four split-mode selectors and live cent-preserving preview. |
 | 04 — Settlement | [Open Settlement SVG](04-settlements.svg) | Readable transfer instructions, Record Payment, and signed member balances. |
@@ -32,7 +32,7 @@ Recommended transfers in the concept: B → A $32.18; B → D $9.02; C → D $6.
 - Match layout hierarchy, screen purpose, color tokens, spacing, labels, and high-level flow—not exact pixel positions.
 - Make responsive mobile versions, keyboard-accessible dialogs, visible focus, input validation, error/loading/empty states, and non-color balance labeling.
 - Use real verified application data at runtime; mockup amounts are illustrative only.
-- Do not blindly implement decorative UI such as fake charts, unsupported OAuth providers, or any unapproved backend behavior.
+- Implement only approved authentication options: email/password and Google sign-in. Do not add GitHub or other social-login providers, invented UI features, or unapproved backend behavior.
 - Confirm the final design with both partners before treating these conceptual screens as approved design requirements.
 
 ## Sources
@@ -41,4 +41,4 @@ Recommended transfers in the concept: B → A $32.18; B → D $9.02; C → D $6.
 - [FairShare product and UX specification](../FAIRSHARE_PRODUCT_SPEC.md).
 - [Course page](https://johnguerra.co/classes/aiCoding_fall_2026/).
 
-**Created as part of the HW3 context-engineering setup, on the PR branch `docs/1-hw3-context-rules`.**
+**Created for HW3 and updated in Pull Request #13.**
