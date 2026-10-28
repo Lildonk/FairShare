@@ -30,6 +30,8 @@ Run: `npx vitest run docs/hw3/evaluation`
 
 ## Results
 
+Measurable results:
+
 | Metric | Without Rules | With Rules |
 |---|---|---|
 | AI's own tests passed | TBD | TBD |
@@ -37,8 +39,16 @@ Run: `npx vitest run docs/hw3/evaluation`
 | Edge cases handled | TBD | TBD |
 | Test coverage (statements / branches) | TBD | TBD |
 | Financial correctness (integer cents, zero-sum validation, ≤ N−1 transfers) | TBD | TBD |
-| Code quality / architecture (e.g. `src/lib/finance/`, naming, strict types) | TBD | TBD |
 | TDD followed (separate failing-test commit before implementation) | TBD | TBD |
+
+HW3 comparison dimensions:
+
+| Dimension | Without Rules | With Rules |
+|---|---|---|
+| Code quality and consistency with project patterns (pure module, strict types, no `any`) | TBD | TBD |
+| Understanding of design/mockup intent (transfer output usable by the [settlement board mockup](../mockups/04-settlements.svg)) | TBD | TBD |
+| Naming conventions and architecture (`src/lib/finance/`, kebab-case files, Conventional Commits with `(#4)`) | TBD | TBD |
+| Quality of tests generated (edge cases, descriptive names, coverage) | TBD | TBD |
 
 ### Shared-case breakdown
 
