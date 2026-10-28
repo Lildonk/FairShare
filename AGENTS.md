@@ -7,7 +7,7 @@
 
 FairShare is a multi-party expense sharing web app for groups, with debt simplification, four split modes, settlement tracking, an audit ledger, and an admin interface.
 
-**Before modifying code:** (1) read the active GitHub Issue and its acceptance criteria; (2) read the relevant parts of [FairShare product/UX specification](docs/FAIRSHARE_PRODUCT_SPEC.md); (3) inspect existing implementation and tests; (4) review an actual mockup/prototype when provided. Do not fabricate missing mockups, endpoints, test results, or stakeholder decisions. The PDF blueprint is the source of this readable spec; it is not currently stored in the repo.
+**Before modifying code:** (1) read the active GitHub Issue and its acceptance criteria; (2) read the relevant parts of [FairShare product/UX specification](docs/FAIRSHARE_PRODUCT_SPEC.md); (3) inspect existing implementation and tests; (4) review the [proposed anonymous SVG mockups](docs/mockups/README.md) and any later approved Figma/Claude prototype. Do not fabricate missing mockups, endpoints, test results, or stakeholder decisions. The PDF blueprint is the source of this readable spec; it is not currently stored in the repo.
 
 **Priority when requirements conflict:** course P2/HW3 grading requirements > confirmed product decisions and issue acceptance criteria > planning spec > inferred defaults. Flag conflicts and ask the two partners to decide; do not silently change intended behavior.
 
@@ -51,7 +51,7 @@ Use strict TypeScript; no unjustified `any`; `PascalCase` components/types, `cam
 
 Read the flows/UI guidance in the product spec. Expected surfaces: register/login; group list; expense modal with payer, participants, EQUAL/EXACT/PERCENTAGE/ITEMIZED modes and live allocation preview; settlement board with labeled owes/gets-back chips, transfer instructions and Record Payment; audit/dispute/export; protected admin view.
 
-Match *actual* design artifacts once linked; the current feature diagram is **not** a screen mockup. If visual details are unspecified, propose a default and label it as an assumption. Use responsive Tailwind layout, semantic HTML, explicit form labels, keyboard navigation, visible focus, accessible status/error messages, and text labels in addition to red/green color.
+Use the [four proposed anonymous UI mockups](docs/mockups/README.md) as visual reference drafts; they were newly created for HW3, **not** taken from an existing Figma/Claude artifact. Confirm them with the pair before treating them as approved visual requirements. If visual details are unspecified, propose a default and label it as an assumption. Use responsive Tailwind layout, semantic HTML, explicit form labels, keyboard navigation, visible focus, accessible status/error messages, and text labels in addition to red/green color.
 
 ## Security and authorization
 
@@ -89,4 +89,4 @@ Use Vitest for core finance logic (the blueprint targets **100% coverage** for d
 4. Run only available project scripts; give reproducible commands and accurately report test/lint/typecheck results.
 5. Finish with changed files, decisions/assumptions, unresolved criteria, and suggested commit/PR text. Human developers review, understand, and approve every AI-generated change.
 
-**Maintain this file:** Keep it concise and updated through partner-reviewed PRs. Put detailed requirements and evolving UI design in `docs/FAIRSHARE_PRODUCT_SPEC.md` rather than expanding every agent prompt.
+**Maintain this file:** Keep it concise and updated through partner-reviewed PRs. Put detailed requirements in `docs/FAIRSHARE_PRODUCT_SPEC.md` and visual screen references in `docs/mockups/README.md`, rather than expanding every agent prompt.
