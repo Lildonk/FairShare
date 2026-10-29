@@ -1,0 +1,60 @@
+$ npm test
+
+> fairshare@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /Users/zact/Desktop/AI coding/Project2/FairShare-no-rules
+
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  17:03:47
+   Duration  152ms (import 40%, tests 27%, transform 19%, worker 14%)
+
+
+$ npm run test:coverage
+
+> fairshare@1.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.5 /Users/zact/Desktop/AI coding/Project2/FairShare-no-rules
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  17:03:47
+   Duration  182ms (worker 42%, import 27%, tests 18%, transform 12%)
+
+ % Coverage report from v8
+------------------|---------|----------|---------|---------|-------------------
+File              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------------|---------|----------|---------|---------|-------------------
+All files         |     100 |    92.85 |     100 |     100 |                   
+ simplifyDebts.ts |     100 |    92.85 |     100 |     100 | 93                
+------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 33/33 )
+Branches     : 92.85% ( 13/14 )
+Functions    : 100% ( 5/5 )
+Lines        : 100% ( 28/28 )
+================================================================================
+
+$ npx tsc --noEmit
+src/simplifyDebts.test.ts(1,10): error TS1295: ECMAScript imports and exports cannot be written in a CommonJS file under 'verbatimModuleSyntax'. Adjust the 'type' field in the nearest 'package.json' to make this file an ECMAScript module, or adjust your 'verbatimModuleSyntax', 'module', and 'moduleResolution' settings in TypeScript.
+src/simplifyDebts.test.ts(1,20): error TS1295: ECMAScript imports and exports cannot be written in a CommonJS file under 'verbatimModuleSyntax'. Adjust the 'type' field in the nearest 'package.json' to make this file an ECMAScript module, or adjust your 'verbatimModuleSyntax', 'module', and 'moduleResolution' settings in TypeScript.
+src/simplifyDebts.test.ts(1,24): error TS1295: ECMAScript imports and exports cannot be written in a CommonJS file under 'verbatimModuleSyntax'. Adjust the 'type' field in the nearest 'package.json' to make this file an ECMAScript module, or adjust your 'verbatimModuleSyntax', 'module', and 'moduleResolution' settings in TypeScript.
+src/simplifyDebts.test.ts(2,10): error TS1295: ECMAScript imports and exports cannot be written in a CommonJS file under 'verbatimModuleSyntax'. Adjust the 'type' field in the nearest 'package.json' to make this file an ECMAScript module, or adjust your 'verbatimModuleSyntax', 'module', and 'moduleResolution' settings in TypeScript.
+src/simplifyDebts.ts(54,1): error TS1287: A top-level 'export' modifier cannot be used on value declarations in a CommonJS module when 'verbatimModuleSyntax' is enabled.
+exit code: 1
+
+$ git status --short
+?? src/
+
+$ git log --oneline -3
+e672564 chore(hw3): remove AI rules and product context for no-rules control (#4)
+96a50c3 chore(hw3): prepare experiment baseline
+fab9379 Merge pull request #13 from Lildonk/docs/12-anonymous-ui-mockups
