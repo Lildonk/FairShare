@@ -13,7 +13,7 @@ Both experiments start from the same baseline commit, `96a50c3` on `chore/hw3-ex
 | Worktree / branch | `../FairShare-no-rules` / `experiment/4-no-rules` | `../FairShare-with-rules` / `experiment/4-with-rules` |
 | Context | `AGENTS.md` and `docs/` removed (commit `e672564`) | `AGENTS.md`, product spec, and mockups present |
 | Tool | Antigravity, fresh Agent conversation | Antigravity, fresh Agent conversation |
-| Model / settings | TBD (record from screenshot) | Same as A |
+| Model / settings | Claude Opus 4.6 (Thinking) | Claude Opus 4.6 (Thinking) |
 
 Prompt for A, verbatim:
 
@@ -112,5 +112,9 @@ These show the practical effect of floating-point money:
 
 ## Screenshots and generated code
 
-- **Screenshots:** in [`screenshots/`](screenshots/). For each run: model/mode settings, the prompt, the AI's final message, and the terminal results. For B, also its answer about which rules it read.
+- **Screenshots** (Antigravity; the model selector is visible in each):
+  - [A: prompt and result](screenshots/a-no-rules-prompt-and-result.png)
+  - [B: prompt and result](screenshots/b-with-rules-prompt-and-result.png), which also shows B's unrequested `package.json` `"type"` change
+  - [B: which rules and documents it read](screenshots/b-with-rules-context-answer.png)
+  - Terminal results are kept as text logs in [`results/`](results/).
 - **Generated code:** copied unmodified into [`generated/no-rules/`](generated/no-rules/) and [`generated/with-rules/`](generated/with-rules/). B's `package.json` change is in [`package.json.diff`](generated/with-rules/package.json.diff).
