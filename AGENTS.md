@@ -1,4 +1,4 @@
-# FairShare — Shared AI Development Rules (HW3 baseline v1)
+# FairShare — Shared AI Development Rules (HW3 v2)
 
 <!-- Shared by Zheqi Lv (@Lildonk) and Zichen Tian (@tianzach).
      Review/update via partner-reviewed PR when architecture or requirements change. -->
@@ -7,7 +7,7 @@
 
 FairShare is a multi-party expense sharing web app for groups, with debt simplification, four split modes, settlement tracking, an audit ledger, and an admin interface.
 
-**Before modifying code:** (1) read the active GitHub Issue and its acceptance criteria; (2) read the relevant parts of [FairShare product/UX specification](docs/FAIRSHARE_PRODUCT_SPEC.md); (3) inspect existing implementation and tests; (4) review the [FairShare UI mockups](docs/mockups/README.md) and any later approved Figma/Claude prototype. Do not fabricate missing mockups, endpoints, test results, or stakeholder decisions. The PDF blueprint is the source of this readable spec; it is not currently stored in the repo.
+**Before modifying code:** (1) read the active GitHub Issue and its acceptance criteria; (2) read the relevant parts of [FairShare product/UX specification](docs/FAIRSHARE_PRODUCT_SPEC.md); (3) inspect existing implementation and tests; (4) review the [FairShare UI mockups](docs/mockups/README.md) and any later approved Figma/Claude prototype. If you cannot open the GitHub Issue, ask the user to paste its acceptance criteria before starting; do not silently substitute the spec. Do not fabricate missing mockups, endpoints, test results, or stakeholder decisions. The PDF blueprint is the source of this readable spec; it is not currently stored in the repo.
 
 **Priority when requirements conflict:** course P2/HW3 grading requirements > confirmed product decisions and issue acceptance criteria > planning spec > inferred defaults. Flag conflicts and ask the two partners to decide; do not silently change intended behavior.
 
@@ -21,7 +21,7 @@ FairShare is a multi-party expense sharing web app for groups, with debt simplif
 - **Tests:** Vitest + React Testing Library (unit/component), integration tests, Playwright (E2E).
 - **Docs/automation:** OpenAPI 3.0/Swagger at `/api/docs`, GitHub Actions, deploy previews.
 
-**Version policy:** The blueprint specifies Next.js 14+ but not exact package versions, and the repo is not scaffolded yet. On Issue #1, select mutually compatible stable versions and pin them in `package.json` / lockfile. Use those actual versions afterward; never guess installed versions or silently upgrade major dependencies. Use npm and existing project scripts.
+**Version policy:** The blueprint specifies Next.js 14+ but not exact package versions, and the repo is not scaffolded yet. On Issue #1, select mutually compatible stable versions and pin them in `package.json` / lockfile. Use those actual versions afterward; never guess installed versions or silently upgrade major dependencies. Use npm and existing project scripts. Do not change `package.json`, `tsconfig.json`, or other tool configuration outside the issue's scope without asking first and explaining why.
 
 ## Architecture and naming
 
@@ -44,6 +44,7 @@ Use strict TypeScript; no unjustified `any`; `PascalCase` components/types, `cam
 - For every expense: sum of allocated shares equals total expense cents exactly; deterministic handling of remainder cents.
 - For debt simplification: each member's `netCents = paidCents - owedCents`; sum of net balances must equal zero; transfers preserve every member's net position; skip zero balances and handle empty/cyclic inputs.
 - Implement the **greedy creditor/debtor matcher** described by the blueprint; it yields **at most N−1 transfers for N nonzero balances**. Do **not** call it a globally minimum-transfer solver.
+- Deterministic means the output depends only on the balances, not on input order or locale: break ties by member ID using ordinal comparison (`a < b`), not `localeCompare`.
 - EQUAL: remainder to payer if payer is included (clarify otherwise). EXACT: exact cent total. PERCENTAGE: validate 100% using the blueprint's 0.01% input tolerance, then distribute cents deterministically. ITEMIZED: prorate tax/tip and reconcile the last cent.
 - No hidden rounding, dropped cents, or mutation of financial history. Fail safely with understandable validation errors.
 
@@ -63,7 +64,7 @@ Choose reputable dependencies and evaluate package risk. Run dependency/security
 
 ## Tests: genuine Red → Green → Refactor
 
-**RED:** Translate each acceptance criterion into failing unit/component/integration tests first; execute them and record the expected failure; commit failing tests before implementation.
+**RED:** Translate each acceptance criterion into failing unit/component/integration tests first; execute them and record the expected failure; commit failing tests before implementation. **Stop point:** before creating any implementation file, show the failing test output and commit only the tests (`test(<scope>): ... (#N)`). If you cannot run the tests or Git, stop and ask; never write tests and implementation in one step.
 
 **GREEN:** Implement the smallest correct change; rerun relevant tests; commit implementation separately.
 
@@ -85,8 +86,13 @@ Use Vitest for core finance logic (the blueprint targets **100% coverage** for d
 
 1. Summarize the issue/acceptance criteria and reference files; propose a concise file-by-file plan **before** edits.
 2. Make the smallest issue-scoped changes. Do not overwrite unrelated work, bypass reviews, invent API shapes/mockup details, or add unapproved frameworks.
-3. Apply genuine test-first commits for testable functionality and review each diff for bugs/security/accessibility.
+3. Apply genuine test-first commits for testable functionality (honor the RED stop point above) and review each diff for bugs/security/accessibility.
 4. Run only available project scripts; give reproducible commands and accurately report test/lint/typecheck results.
-5. Finish with changed files, decisions/assumptions, unresolved criteria, and suggested commit/PR text. Human developers review, understand, and approve every AI-generated change.
+5. Finish with changed files, a table mapping each acceptance criterion to the test(s) covering it (mark any criterion left uncovered), decisions/assumptions, and suggested commit/PR text. Human developers review, understand, and approve every AI-generated change.
 
 **Maintain this file:** Keep it concise and updated through partner-reviewed PRs. Put detailed requirements in `docs/FAIRSHARE_PRODUCT_SPEC.md` and visual screen references in `docs/mockups/README.md`, rather than expanding every agent prompt.
+
+## Revision history
+
+- **v2** (2026-10-28, #4): Refined after the HW3 before/after experiment ([results](docs/hw3/comparison.md)). With v1 active, the AI applied the financial and architecture rules, but it made no TDD commits, changed `package.json` unprompted, worked without the issue text, used locale-dependent tie-breaking, and left one acceptance criterion untested. Added: a RED stop point, a config-change guard, a missing-issue fallback, a precise determinism rule, and an acceptance-criteria-to-test table.
+- **v1** (2026-10-28, #1): Initial shared rules.
