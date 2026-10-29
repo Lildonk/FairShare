@@ -33,7 +33,8 @@ Neither implementation was edited before the results below were recorded.
 ## Evaluation method
 
 1. **Each AI's own tests:** `npm test`, `npm run test:coverage`, and `npx tsc --noEmit` in its worktree. Raw output is in [`results/no-rules-own-tests.txt`](results/no-rules-own-tests.txt) and [`results/with-rules-own-tests.txt`](results/with-rules-own-tests.txt).
-2. **Shared suite:** [`evaluation/shared-cases.ts`](evaluation/shared-cases.ts), which neither AI saw. It was checked against a reference implementation first (14/14). Thin adapters map each API to `{ id, netCents }[] → { from, to, amountCents }[]`. For A, cent values are passed as plain numbers, because A is unit-agnostic. Run: `npx vitest run docs/hw3/evaluation`. Output is in [`results/shared-suite.txt`](results/shared-suite.txt).
+2. **Shared suite:** [`evaluation/shared-cases.ts`](evaluation/shared-cases.ts), which neither AI saw. It was checked against a reference implementation first (14/14). Thin adapters map each API to `{ id, netCents }[] → { from, to, amountCents }[]`. For A, cent values are passed as plain numbers, because A is unit-agnostic. To run it: check out `chore/hw3-experiment-baseline`, run `npm ci` and `git checkout docs/4-hw3-comparison -- docs/hw3`, then `npx vitest run docs/hw3/evaluation`. Output is in [`results/shared-suite.txt`](results/shared-suite.txt).
+   - The suite intentionally contains three failing no-rules cases. When the project's Vitest config is added (Issue #1), limit `include` to `src/**` and `tests/**` so that `docs/hw3/` is not run in CI.
 
 ## Results
 
