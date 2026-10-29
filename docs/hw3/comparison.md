@@ -89,6 +89,7 @@ These show the practical effect of floating-point money:
 ## What improved (or didn't)
 
 **Improved with rules:**
+- **Workflow.** B followed the "context first" workflow in `AGENTS.md`. It said it would read the required context files, inspected the project and existing `src/`, and wrote an "Issue #4 — Debt Simplification Engine: Plan" before making any edits ([screenshot](screenshots/b-with-rules-context-first-plan.png)). A went straight to implementation ([screenshot](screenshots/a-no-rules-prompt-and-result.png)).
 - The non-negotiable financial rules in `AGENTS.md` (integer cents, exact zero sum, greedy matcher, N−1 bound, no "global minimum" claim) were applied almost word for word.
 - The architecture and naming sections placed the code correctly.
 - The mockup README gave it a realistic test scenario.
@@ -116,5 +117,6 @@ These show the practical effect of floating-point money:
   - [A: prompt and result](screenshots/a-no-rules-prompt-and-result.png)
   - [B: prompt and result](screenshots/b-with-rules-prompt-and-result.png), which also shows B's unrequested `package.json` `"type"` change
   - [B: which rules and documents it read](screenshots/b-with-rules-context-answer.png)
+  - [B: reads context and proposes a plan before editing](screenshots/b-with-rules-context-first-plan.png)
   - Terminal results are kept as text logs in [`results/`](results/).
 - **Generated code:** copied unmodified into [`generated/no-rules/`](generated/no-rules/) and [`generated/with-rules/`](generated/with-rules/). B's `package.json` change is in [`package.json.diff`](generated/with-rules/package.json.diff).
