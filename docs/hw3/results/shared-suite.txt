@@ -1,0 +1,100 @@
+
+ RUN  v5.0.5 /Users/zact/Desktop/AI coding/Project2/FairShare
+
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > empty and zero balances > returns no transfers for empty input 2ms
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > empty and zero balances > returns no transfers when everyone is settled 0ms
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > empty and zero balances > never involves zero-balance members 1ms
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > multiple debtors and creditors > settles a single debtor paying several creditors 0ms
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > multiple debtors and creditors > settles several debtors and creditors in at most N-1 transfers 0ms
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > unbalanced input > rejects balances that do not sum to zero 1ms
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > cyclic debts > collapses an even cycle (A→B→C→A, 10.00 each) to no transfers 0ms
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > cyclic debts > settles an uneven cycle (A→B 30, B→C 20, C→A 10) 0ms
+ × docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > integer-cent precision > rejects fractional cents 5ms
+   → expected [Function] to throw an error
+ × docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > integer-cent precision > rejects amounts outside the safe integer range 1ms
+   → expected [Function] to throw an error
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > integer-cent precision > keeps one-cent balances exact 0ms
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > deterministic output > returns identical output for identical input 1ms
+ × docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > deterministic output > returns identical output regardless of input order 4ms
+   → expected [ { from: 'B', to: 'D', …(1) }, …(1) ] to deeply equal [ { from: 'A', to: 'C', …(1) }, …(1) ]
+ ✓ docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > deterministic output > does not mutate the input 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > empty and zero balances > returns no transfers for empty input 2ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > empty and zero balances > returns no transfers when everyone is settled 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > empty and zero balances > never involves zero-balance members 13ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > multiple debtors and creditors > settles a single debtor paying several creditors 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > multiple debtors and creditors > settles several debtors and creditors in at most N-1 transfers 1ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > unbalanced input > rejects balances that do not sum to zero 1ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > cyclic debts > collapses an even cycle (A→B→C→A, 10.00 each) to no transfers 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > cyclic debts > settles an uneven cycle (A→B 30, B→C 20, C→A 10) 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > integer-cent precision > rejects fractional cents 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > integer-cent precision > rejects amounts outside the safe integer range 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > integer-cent precision > keeps one-cent balances exact 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > deterministic output > returns identical output for identical input 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > deterministic output > returns identical output regardless of input order 0ms
+ ✓ docs/hw3/evaluation/with-rules.test.ts > [with-rules] shared debt simplification cases > deterministic output > does not mutate the input 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > integer-cent precision > rejects fractional cents
+AssertionError: expected [Function] to throw an error
+ ❯ docs/hw3/evaluation/shared-cases.ts:130:11
+    128|             { id: 'B', netCents: 10.5 },
+    129|           ]),
+    130|         ).toThrow();
+       |           ^
+    131|       });
+    132|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > integer-cent precision > rejects amounts outside the safe integer range
+AssertionError: expected [Function] to throw an error
+ ❯ docs/hw3/evaluation/shared-cases.ts:139:11
+    137|             { id: 'B', netCents: Number.MAX_SAFE_INTEGER + 1 },
+    138|           ]),
+    139|         ).toThrow();
+       |           ^
+    140|       });
+    141|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  docs/hw3/evaluation/no-rules.test.ts > [no-rules] shared debt simplification cases > deterministic output > returns identical output regardless of input order
+AssertionError: expected [ { from: 'B', to: 'D', …(1) }, …(1) ] to deeply equal [ { from: 'A', to: 'C', …(1) }, …(1) ]
+
+- Expected
++ Received
+
+  [
+    {
+      "amountCents": 2500,
+-     "from": "A",
+-     "to": "C",
++     "from": "B",
++     "to": "D",
+    },
+    {
+      "amountCents": 2500,
+-     "from": "B",
+-     "to": "D",
++     "from": "A",
++     "to": "C",
+    },
+  ]
+
+ ❯ docs/hw3/evaluation/shared-cases.ts:165:51
+    163|
+    164|       it('returns identical output regardless of input order', () => {
+    165|         expect(simplify([...balances].reverse())).toEqual(simplify(bal…
+       |                                                   ^
+    166|       });
+    167|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  3 failed | 25 passed (28)
+   Start at  17:03:51
+   Duration  190ms (tests 46%, import 29%, transform 16%, worker 9%)
+

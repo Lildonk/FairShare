@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index 4fd9ead..c66ddd4 100644
+--- a/package.json
++++ b/package.json
+@@ -17,7 +17,7 @@
+   "keywords": [],
+   "author": "",
+   "license": "ISC",
+-  "type": "commonjs",
++  "type": "module",
+   "bugs": {
+     "url": "https://github.com/Lildonk/FairShare/issues"
+   },

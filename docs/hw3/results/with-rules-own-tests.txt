@@ -1,0 +1,53 @@
+$ npm test
+
+> fairshare@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /Users/zact/Desktop/AI coding/Project2/FairShare-with-rules
+
+
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+   Start at  17:03:49
+   Duration  179ms (tests 42%, import 35%, transform 15%, worker 8%)
+
+
+$ npm run test:coverage
+
+> fairshare@1.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.5 /Users/zact/Desktop/AI coding/Project2/FairShare-with-rules
+      Coverage enabled with v8
+
+
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+   Start at  17:03:49
+   Duration  272ms (tests 39%, worker 27%, import 23%, transform 11%)
+
+ % Coverage report from v8
+No files with missing coverage.
+1 file fully covered.
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 44/44 )
+Branches     : 100% ( 20/20 )
+Functions    : 100% ( 6/6 )
+Lines        : 100% ( 40/40 )
+================================================================================
+
+$ npx tsc --noEmit
+exit code: 0
+
+$ git status --short
+ M package.json
+?? src/
+?? vitest.config.ts
+
+$ git log --oneline -3
+96a50c3 chore(hw3): prepare experiment baseline
+fab9379 Merge pull request #13 from Lildonk/docs/12-anonymous-ui-mockups
+7b57724 docs(mockups): describe Google sign-in and requested scope (#3)
