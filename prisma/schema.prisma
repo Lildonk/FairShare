@@ -1,0 +1,11 @@
+// FairShare data model. Decisions behind each change from the blueprint:
+// docs/FAIRSHARE_PRODUCT_SPEC.md#data-model-decisions
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
