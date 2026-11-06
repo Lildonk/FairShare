@@ -1,6 +1,6 @@
 # FairShare — Product and Design Specification (HW3 Baseline)
 
-> **Status:** Project planning baseline, derived from the pair's 13-page *Project 2 Architecture & Specification Blueprint (FairShare)* by Zichen Tian and Zheqi Lv. This is a readable implementation reference, **not** a replacement for a missing screen mockup or evidence of an implemented feature. Confirm design choices with both partners before coding.
+> **Status:** Project planning baseline, derived from the pair's 13-page *Project 2 Architecture & Specification Blueprint (FairShare)* by Zichen Tian and Zheqi Lv ([Markdown](blueprint/FAIRSHARE_BLUEPRINT.md), [PDF](blueprint/FairShare_Blueprint.pdf)). This is a readable implementation reference, **not** a replacement for a missing screen mockup or evidence of an implemented feature. Confirm design choices with both partners before coding.
 
 ## 1. Problem, users, and outcome
 
@@ -72,7 +72,7 @@ As an authorized admin, I want to resolve disputes and archive ledgers; as a dev
 
 Planned stack: Next.js 14+ App Router, React, TypeScript, TailwindCSS, Lucide React; Next.js Route Handlers; PostgreSQL and Prisma; JWT and bcrypt with Google OAuth/OIDC sign-in; Zustand/React Hooks; Vitest + React Testing Library + Playwright; GitHub Actions; OpenAPI 3.0 / Swagger. **The repo has not yet been scaffolded; exact package versions must be pinned in package.json and the lockfile after setup.**
 
-Draft relational entities: `User`, `Group`, `GroupMember`, `Expense`, `ExpenseSplit`, `Settlement`. Core money fields are integer cents. The full draft model definitions are in the original FairShare blueprint, Section 5, and need review for missing audit records and admin scope.
+Draft relational entities: `User`, `Group`, `GroupMember`, `Expense`, `ExpenseSplit`, `Settlement`. Core money fields are integer cents. The full draft model definitions are in [blueprint Section 5](blueprint/FAIRSHARE_BLUEPRINT.md#5-relational-database-schema-design-prisma), and need review for missing audit records and admin scope.
 
 Planned endpoint inventory from the blueprint (verify request/response schemas before implementation):
 
