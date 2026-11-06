@@ -2,7 +2,11 @@
 
 > **Source:** Markdown transcription of [FairShare_Blueprint.pdf](FairShare_Blueprint.pdf) (13 pages, Google Docs export), kept for searchable, reviewable text. Content is reproduced as written; only formatting (tables, code blocks, the Section 4 diagram) was converted. If this file and the PDF disagree, the PDF is the original.
 >
-> This is the original planning blueprint. Later partner decisions (for example, adding Google sign-in in #3) and open questions are tracked in [FAIRSHARE_PRODUCT_SPEC.md](../FAIRSHARE_PRODUCT_SPEC.md) and [AGENTS.md](../../AGENTS.md).
+> This is the original planning blueprint. Later partner decisions and open questions are tracked in [FAIRSHARE_PRODUCT_SPEC.md](../FAIRSHARE_PRODUCT_SPEC.md) and [AGENTS.md](../../AGENTS.md); where they differ, they win. Known differences:
+>
+> - Section 3: `ADMIN` is a platform-wide admin/auditor role, not a per-group "Group Admin" (#2).
+> - Section 5: the schema was refined in #2: optional `passwordHash`, settlement user relations, restricted deletes for financial history, unique splits, indexes, `allocatedBps` instead of `allocatedPct`, and CHECK constraints ([data model decisions](../FAIRSHARE_PRODUCT_SPEC.md#data-model-decisions)).
+> - Sections 2 and 6: Google sign-in was added alongside email/password (#3).
 
 Zichen Tian, Zheqi Lv
 https://github.com/Lildonk/FairShare
