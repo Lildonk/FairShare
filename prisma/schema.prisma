@@ -1,5 +1,6 @@
 // FairShare data model. Decisions behind each change from the blueprint:
 // docs/FAIRSHARE_PRODUCT_SPEC.md#data-model-decisions
+// CHECK constraints on money columns live in the migration SQL (Prisma schema cannot express them).
 
 datasource db {
   provider = "postgresql"
@@ -8,4 +9,123 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+}
+
+/// Platform-wide role. ADMIN unlocks only /admin and /api/v1/admin/*; never set it from client input.
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+  ITEMIZED
+}
+
+enum SettlementStatus {
+  PENDING
+  CONFIRMED
+  DISPUTED
+}
+
+model User {
+  id                  String         @id @default(uuid())
+  email               String         @unique
+  /// Null for accounts that only sign in with Google.
+  passwordHash        String?
+  name                String
+  role                Role           @default(MEMBER)
+  memberships         GroupMember[]
+  paidExpenses        Expense[]      @relation("ExpensePayer")
+  splits              ExpenseSplit[]
+  settlementsSent     Settlement[]   @relation("SettlementFrom")
+  settlementsReceived Settlement[]   @relation("SettlementTo")
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+model Group {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  currency    String        @default("USD")
+  inviteCode  String        @unique @default(uuid())
+  isArchived  Boolean       @default(false)
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model GroupMember {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId  String
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+}
+
+model Expense {
+  id          String         @id @default(uuid())
+  groupId     String
+  group       Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  payerId     String
+  /// Restrict: a user who paid an expense cannot be deleted, so other members' balances stay intact.
+  payer       User           @relation("ExpensePayer", fields: [payerId], references: [id], onDelete: Restrict)
+  title       String
+  /// Total in integer cents, greater than 0.
+  amountCents Int
+  splitType   SplitType      @default(EQUAL)
+  category    String         @default("General")
+  isDisputed  Boolean        @default(false)
+  receiptUrl  String?
+  splits      ExpenseSplit[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([groupId, createdAt])
+  @@index([payerId])
+}
+
+model ExpenseSplit {
+  id           String  @id @default(uuid())
+  expenseId    String
+  expense      Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  /// This participant's share in integer cents (0 or more). Shares of one expense sum to its amountCents.
+  owedCents    Int
+  /// PERCENTAGE splits only: the share in basis points, 0 to 10000 (3333 = 33.33%).
+  allocatedBps Int?
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+}
+
+model Settlement {
+  id          String           @id @default(uuid())
+  groupId     String
+  group       Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  fromUserId  String
+  fromUser    User             @relation("SettlementFrom", fields: [fromUserId], references: [id], onDelete: Restrict)
+  toUserId    String
+  toUser      User             @relation("SettlementTo", fields: [toUserId], references: [id], onDelete: Restrict)
+  /// Payment from fromUser to toUser in integer cents, greater than 0. The two users must differ.
+  amountCents Int
+  status      SettlementStatus @default(PENDING)
+  notes       String?
+  settledAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([groupId, status])
+  @@index([fromUserId])
+  @@index([toUserId])
 }
