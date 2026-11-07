@@ -76,8 +76,9 @@ function validateItem(item: ReceiptItem): void {
   }
 }
 
-/** Adds each member's equal share of every item to `subtotals`. */
-function allocateItems(items: ReceiptItem[], subtotals: Map<string, number>): void {
+/** Returns each member's item subtotal: equal shares of every item they are on. */
+function allocateItems(items: ReceiptItem[]): Map<string, number> {
+  const subtotals = new Map<string, number>();
   for (const item of items) {
     const participants = [...item.participantIds].sort(compareDistinctIds);
     const baseShare = Math.floor(item.priceCents / participants.length);
@@ -87,41 +88,41 @@ function allocateItems(items: ReceiptItem[], subtotals: Map<string, number>): vo
       subtotals.set(id, (subtotals.get(id) ?? 0) + share);
     });
   }
+  return subtotals;
 }
 
-/** Prorates `extrasCents` by subtotal using floors plus largest-remainder cents. */
-function prorateExtras(
-  memberIds: string[],
-  subtotals: Map<string, number>,
-  itemTotal: number,
-  extrasCents: number,
-): Map<string, number> {
-  const extras = new Map<string, number>(memberIds.map((id) => [id, 0]));
+/**
+ * Prorates `extrasCents` across `subtotals` (already in memberId ordinal order) using
+ * floors plus largest-remainder cents. Returns the extras share at each index.
+ */
+function prorateExtras(subtotals: number[], itemTotal: number, extrasCents: number): number[] {
   if (extrasCents === 0) {
-    return extras;
+    // Also avoids dividing by a zero item total when every item is free.
+    return subtotals.map(() => 0);
   }
 
   const pool = BigInt(extrasCents);
   const denominator = BigInt(itemTotal);
-  const remainders: { id: string; remainder: bigint }[] = [];
-  let allocated = 0;
-  for (const id of memberIds) {
-    const product = pool * BigInt(subtotals.get(id) ?? 0);
-    const share = Number(product / denominator);
-    extras.set(id, share);
-    allocated += share;
-    remainders.push({ id, remainder: product % denominator });
+  const shares: number[] = [];
+  const remainders: bigint[] = [];
+  for (const subtotal of subtotals) {
+    const product = pool * BigInt(subtotal);
+    shares.push(Number(product / denominator));
+    remainders.push(product % denominator);
   }
 
-  remainders.sort((a, b) => {
-    if (a.remainder !== b.remainder) return a.remainder > b.remainder ? -1 : 1;
-    return compareDistinctIds(a.id, b.id);
-  });
-  for (let i = 0; i < extrasCents - allocated; i++) {
-    const { id } = remainders[i];
-    extras.set(id, (extras.get(id) ?? 0) + 1);
+  const leftoverCents = extrasCents - shares.reduce((sum, share) => sum + share, 0);
+  // Largest remainder first; equal remainders keep index (memberId ordinal) order.
+  const order = subtotals
+    .map((_, index) => index)
+    .sort((a, b) => {
+      if (remainders[a] === remainders[b]) return a - b;
+      return remainders[a] > remainders[b] ? -1 : 1;
+    });
+  for (let k = 0; k < leftoverCents; k++) {
+    shares[order[k]] += 1;
   }
-  return extras;
+  return shares;
 }
 
 /**
@@ -161,20 +162,18 @@ export function splitItemized(receipt: ItemizedReceipt): ItemizedAllocation[] {
     );
   }
 
-  const subtotals = new Map<string, number>();
-  allocateItems(receipt.items, subtotals);
-  // Map keys are unique, so the IDs are distinct.
-  const memberIds = [...subtotals.keys()].sort(compareDistinctIds);
-  const extras = prorateExtras(memberIds, subtotals, itemTotal, extrasCents);
+  // Map keys are unique, so the IDs being sorted are distinct.
+  const members = [...allocateItems(receipt.items)].sort(([a], [b]) => compareDistinctIds(a, b));
+  const extras = prorateExtras(
+    members.map(([, subtotal]) => subtotal),
+    itemTotal,
+    extrasCents,
+  );
 
-  return memberIds.map((memberId) => {
-    const itemsCents = subtotals.get(memberId) ?? 0;
-    const extrasShare = extras.get(memberId) ?? 0;
-    return {
-      memberId,
-      itemsCents,
-      extrasCents: extrasShare,
-      totalCents: itemsCents + extrasShare,
-    };
-  });
+  return members.map(([memberId, itemsCents], index) => ({
+    memberId,
+    itemsCents,
+    extrasCents: extras[index],
+    totalCents: itemsCents + extras[index],
+  }));
 }
