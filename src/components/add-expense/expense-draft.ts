@@ -118,9 +118,10 @@ export function buildExpenseDraft(
     }
   }
 
+  const hasShareErrors = [...entered.values()].some((value) => value === null);
   let allocations: ShareAllocation[] | null = null;
   let splitError: string | null = null;
-  if (amountCents !== null && participants.length > 0 && errors.every((e) => !e.field.startsWith('share-'))) {
+  if (amountCents !== null && participants.length > 0 && !hasShareErrors) {
     const ids = participants.map((m) => m.id);
     try {
       if (state.splitType === 'EQUAL') {

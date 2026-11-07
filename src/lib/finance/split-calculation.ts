@@ -14,7 +14,7 @@
  * Allocations are returned in the order the participants were given.
  */
 import { InvalidSplitError } from './itemized-split';
-import { formatCents } from './money-input';
+import { formatBasisPoints, formatCents } from './money-input';
 
 export interface ShareAllocation {
   memberId: string;
@@ -133,7 +133,7 @@ export function splitPercentage(
   }
   if (Math.abs(sumBasisPoints - FULL_BASIS_POINTS) > PERCENT_TOLERANCE_BPS) {
     throw new InvalidSplitError(
-      `Percentages add up to ${(sumBasisPoints / 100).toFixed(2)}%; they must total 100% ` +
+      `Percentages add up to ${formatBasisPoints(sumBasisPoints)}; they must total 100% ` +
         '(within 0.01%).',
     );
   }

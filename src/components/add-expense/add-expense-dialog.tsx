@@ -78,7 +78,7 @@ export function AddExpenseDialog({
       ? { 'aria-invalid': true as const, 'aria-describedby': errorId(field) }
       : { 'aria-invalid': false as const };
   };
-  const ErrorText = ({ field }: { field: FieldKey }) => {
+  const renderError = (field: FieldKey) => {
     const message = errorFor(field);
     return message ? (
       <p id={errorId(field)} className="mt-1 text-sm text-red-700">
@@ -153,7 +153,7 @@ export function AddExpenseDialog({
               className={inputClass}
               {...invalidProps('description')}
             />
-            <ErrorText field="description" />
+            {renderError('description')}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -171,7 +171,7 @@ export function AddExpenseDialog({
                 className={inputClass}
                 {...invalidProps('amount')}
               />
-              <ErrorText field="amount" />
+              {renderError('amount')}
             </div>
             <div>
               <label htmlFor={`${id}-payer`} className="block text-sm font-medium text-gray-700">
@@ -266,14 +266,14 @@ export function AddExpenseDialog({
                           />
                           {!isExact && <span aria-hidden="true">%</span>}
                         </div>
-                        <ErrorText field={field} />
+                        {renderError(field)}
                       </div>
                     )}
                   </li>
                 );
               })}
             </ul>
-            <ErrorText field="participants" />
+            {renderError('participants')}
           </fieldset>
 
           <section aria-labelledby={`${id}-preview`} className="rounded-md bg-gray-50 p-4">

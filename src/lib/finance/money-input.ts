@@ -25,11 +25,19 @@ export function parsePercentToBasisPoints(input: string): number | null {
   return match ? toHundredths(match[1], match[2]) : null;
 }
 
+/** Formats a non-negative count of hundredths as "1,234.05" without floating-point math. */
+function formatHundredths(value: number): string {
+  const whole = Math.floor(value / 100).toLocaleString('en-US');
+  const fraction = String(value % 100).padStart(2, '0');
+  return `${whole}.${fraction}`;
+}
+
 /** Formats integer cents as US dollars, e.g. 123456789 -> "$1,234,567.89". */
 export function formatCents(cents: number): string {
-  const sign = cents < 0 ? '-' : '';
-  const absolute = Math.abs(cents);
-  const dollars = Math.floor(absolute / 100).toLocaleString('en-US');
-  const remainder = String(absolute % 100).padStart(2, '0');
-  return `${sign}$${dollars}.${remainder}`;
+  return `${cents < 0 ? '-' : ''}$${formatHundredths(Math.abs(cents))}`;
+}
+
+/** Formats non-negative basis points as a percentage, e.g. 9000 -> "90.00%". */
+export function formatBasisPoints(basisPoints: number): string {
+  return `${formatHundredths(basisPoints)}%`;
 }
