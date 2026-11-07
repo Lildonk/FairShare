@@ -1,4 +1,4 @@
-# FairShare — Shared AI Development Rules (HW3 v2)
+# FairShare — Shared AI Development Rules (v2.1)
 
 <!-- Shared by Zheqi Lv (@Lildonk) and Zichen Tian (@tianzach).
      Review/update via partner-reviewed PR when architecture or requirements change. -->
@@ -7,7 +7,7 @@
 
 FairShare is a multi-party expense sharing web app for groups, with debt simplification, four split modes, settlement tracking, an audit ledger, and an admin interface.
 
-**Before modifying code:** (1) read the active GitHub Issue and its acceptance criteria; (2) read the relevant parts of [FairShare product/UX specification](docs/FAIRSHARE_PRODUCT_SPEC.md); (3) inspect existing implementation and tests; (4) review the [FairShare UI mockups](docs/mockups/README.md) and any later approved Figma/Claude prototype. If you cannot open the GitHub Issue, ask the user to paste its acceptance criteria before starting; do not silently substitute the spec. Do not fabricate missing mockups, endpoints, test results, or stakeholder decisions. The PDF blueprint is the source of this readable spec; it is not currently stored in the repo.
+**Before modifying code:** (1) read the active GitHub Issue and its acceptance criteria; (2) read the relevant parts of [FairShare product/UX specification](docs/FAIRSHARE_PRODUCT_SPEC.md); (3) inspect existing implementation and tests; (4) review the [FairShare UI mockups](docs/mockups/README.md) and any later approved Figma/Claude prototype. If you cannot open the GitHub Issue, ask the user to paste its acceptance criteria before starting; do not silently substitute the spec. Do not fabricate missing mockups, endpoints, test results, or stakeholder decisions. The [original blueprint](docs/blueprint/FAIRSHARE_BLUEPRINT.md) ([PDF](docs/blueprint/FairShare_Blueprint.pdf)) is the source of this readable spec; read its Section 5 schema and Section 6 endpoint table before database or API work.
 
 **Priority when requirements conflict:** course P2/HW3 grading requirements > confirmed product decisions and issue acceptance criteria > planning spec > inferred defaults. Flag conflicts and ask the two partners to decide; do not silently change intended behavior.
 
@@ -45,8 +45,8 @@ Use strict TypeScript; no unjustified `any`; `PascalCase` components/types, `cam
 - For debt simplification: each member's `netCents = paidCents - owedCents`; sum of net balances must equal zero; transfers preserve every member's net position; skip zero balances and handle empty/cyclic inputs.
 - Implement the **greedy creditor/debtor matcher** described by the blueprint; it yields **at most N−1 transfers for N nonzero balances**. Do **not** call it a globally minimum-transfer solver.
 - Deterministic means the output depends only on the balances, not on input order or locale: break ties by member ID using ordinal comparison (`a < b`), not `localeCompare`.
-- EQUAL: remainder to payer if payer is included (clarify otherwise). EXACT: exact cent total. PERCENTAGE: validate 100% using the blueprint's 0.01% input tolerance, then distribute cents deterministically. ITEMIZED: prorate tax/tip and reconcile the last cent.
-- No hidden rounding, dropped cents, or mutation of financial history. Fail safely with understandable validation errors.
+- EQUAL: remainder to payer if payer is included (clarify otherwise). EXACT: exact cent total. PERCENTAGE: validate 100% using the blueprint's 0.01% input tolerance, store percentages as integer basis points (10000 = 100%), then distribute cents deterministically. ITEMIZED: prorate tax/tip and reconcile the last cent.
+- No hidden rounding, dropped cents, or mutation of financial history; user references from expenses, splits, and settlements use `onDelete: Restrict`, never `Cascade`. Fail safely with understandable validation errors.
 
 ## UI behavior and accessibility
 
@@ -58,7 +58,7 @@ Use the [four proposed FairShare UI mockups](docs/mockups/README.md) as visual r
 
 Validate external input at API boundaries. Use Prisma/parameterized DB operations; avoid unsafe raw SQL and unsanitized HTML. For email/password login, hash passwords with bcrypt and sign/verify JWTs using approved libraries. For Google sign-in, use a maintained OAuth/OIDC library; verify provider-issued identity and use secure session handling. Never trust a client-submitted Google email or token without server-side verification. For browser sessions, prefer secure HttpOnly/SameSite cookies over exposing tokens to JavaScript; document any Bearer-token API flow. Never trust client-supplied role or user identity.
 
-Authenticate **and authorize** every private group query/mutation against membership; restrict admin endpoints on the server, not only the UI. The blueprint's global `User.role` versus “Group Admin” is unresolved: **ask before implementing cross-group admin powers**. Protect archived ledgers from writes, keep public calculator routes stateless and detached from private data, avoid exposing receipts/user information, and never commit `.env`, JWT secrets, or credentials. Use least-privilege configuration, safe error messages, and no secrets in logs.
+Authenticate **and authorize** every private group query/mutation against membership; restrict admin endpoints on the server, not only the UI. **Admin is platform-wide** (decided in #2): `User.role = ADMIN` unlocks only `/admin` and `/api/v1/admin/*`; there are no per-group roles, and `role` is never set from client input. Protect archived ledgers from writes, keep public calculator routes stateless and detached from private data, avoid exposing receipts/user information, and never commit `.env`, JWT secrets, or credentials. Use least-privilege configuration, safe error messages, and no secrets in logs.
 
 Choose reputable dependencies and evaluate package risk. Run dependency/security scanning in CI; keep PR previews isolated from production credentials.
 
@@ -94,5 +94,6 @@ Use Vitest for core finance logic (the blueprint targets **100% coverage** for d
 
 ## Revision history
 
+- **v2.1** (2026-11-06, #2): Linked the original blueprint now stored in `docs/blueprint/`. Recorded the platform-wide admin decision, basis-point percentages, and restricted deletes for financial history ([data model decisions](docs/FAIRSHARE_PRODUCT_SPEC.md#data-model-decisions)).
 - **v2** (2026-10-28, #4): Refined after the HW3 before/after experiment ([results](docs/hw3/comparison.md)). With v1 active, the AI applied the financial and architecture rules, but it made no TDD commits, changed `package.json` unprompted, worked without the issue text, used locale-dependent tie-breaking, and left one acceptance criterion untested. Added: a RED stop point, a config-change guard, a missing-issue fallback, a precise determinism rule, and an acceptance-criteria-to-test table.
 - **v1** (2026-10-28, #1): Initial shared rules.

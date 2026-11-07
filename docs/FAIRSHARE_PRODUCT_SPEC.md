@@ -1,6 +1,6 @@
 # FairShare — Product and Design Specification (HW3 Baseline)
 
-> **Status:** Project planning baseline, derived from the pair's 13-page *Project 2 Architecture & Specification Blueprint (FairShare)* by Zichen Tian and Zheqi Lv. This is a readable implementation reference, **not** a replacement for a missing screen mockup or evidence of an implemented feature. Confirm design choices with both partners before coding.
+> **Status:** Project planning baseline, derived from the pair's 13-page *Project 2 Architecture & Specification Blueprint (FairShare)* by Zichen Tian and Zheqi Lv ([Markdown](blueprint/FAIRSHARE_BLUEPRINT.md), [PDF](blueprint/FairShare_Blueprint.pdf)). This is a readable implementation reference, **not** a replacement for a missing screen mockup or evidence of an implemented feature. Confirm design choices with both partners before coding.
 
 ## 1. Problem, users, and outcome
 
@@ -46,7 +46,7 @@ As a member or authorized auditor, I want a transparent activity history so we c
 - Capture immutable, time-stamped expense creation, editing, and deletion events.
 - Flag/unflag disputed expenses, keeping group-level authorization.
 - Export permitted group ledger or settlement data in CSV and JSON.
-- **Design gap:** the draft Prisma schema does not include a dedicated immutable audit-event table. Agree on a migration/schema change before implementing this feature.
+- **Decision (#2):** the audit-event table is not part of the #2 schema. #8 adds an append-only audit-event model in its own migration. Until then, the #2 schema blocks deleting users who have financial history (see [Data model decisions](#data-model-decisions)).
 
 ### US-5 — Register, log in, and manage authorized groups (GitHub #2, #3)
 
@@ -66,13 +66,34 @@ As an authorized admin, I want to resolve disputes and archive ledgers; as a dev
 - Archived ledgers must reject further mutations at the server boundary.
 - Provide versioned REST endpoints under `/api/v1` and OpenAPI 3.0 / Swagger UI at `/api/docs`.
 - Public, **stateless** utility endpoints: `POST /api/v1/simplify` and `POST /api/v1/split/calculate`.
-- **Authorization decision to confirm:** the draft uses a global `User.role` but talks about “Group Admin.” Decide whether admin privileges are platform-wide or per-group before implementing /admin routes.
+- **Decision (#2): admin authority is platform-wide.** `User.role = ADMIN` unlocks the protected `/admin` portal and `/api/v1/admin/*` endpoints (cross-group overview, disputes, archiving, member rosters). There are no per-group roles: every member has the same rights inside their own groups, and admins get no extra powers outside the admin endpoints. Registration always creates `MEMBER`; `ADMIN` is granted only server-side (seed data or the database), never from client input. This replaces the blueprint's “Group Admin” wording.
 
 ## 3. Architecture / contracts
 
 Planned stack: Next.js 14+ App Router, React, TypeScript, TailwindCSS, Lucide React; Next.js Route Handlers; PostgreSQL and Prisma; JWT and bcrypt with Google OAuth/OIDC sign-in; Zustand/React Hooks; Vitest + React Testing Library + Playwright; GitHub Actions; OpenAPI 3.0 / Swagger. **The repo has not yet been scaffolded; exact package versions must be pinned in package.json and the lockfile after setup.**
 
-Draft relational entities: `User`, `Group`, `GroupMember`, `Expense`, `ExpenseSplit`, `Settlement`. Core money fields are integer cents. The full draft model definitions are in the original FairShare blueprint, Section 5, and need review for missing audit records and admin scope.
+Draft relational entities: `User`, `Group`, `GroupMember`, `Expense`, `ExpenseSplit`, `Settlement`. Core money fields are integer cents. The draft model definitions are in [blueprint Section 5](blueprint/FAIRSHARE_BLUEPRINT.md#5-relational-database-schema-design-prisma); the #2 schema follows them with the changes below.
+
+### Data model decisions
+
+Decided in #2 (2026-11-06):
+
+| Blueprint Section 5 | Decision | Why |
+| --- | --- | --- |
+| `User.passwordHash String` | Optional (`String?`) | Google sign-in accounts have no password. Google account linking is added in #3 with its OIDC library. |
+| `User.role` described as “Group Admin” | Platform-wide role (see US-6) | One server-side role check; no per-group roles. |
+| `Settlement.fromUserId` / `toUserId` without relations | Relations to `User` | The database rejects settlements for unknown users. |
+| `onDelete: Cascade` from users to expenses and splits | `onDelete: Restrict` on every user reference from expenses, splits, and settlements | Deleting a user must not silently erase other members' balances. Deleting a whole group still cascades; archiving is the normal path. |
+| No uniqueness on `ExpenseSplit` | `@@unique([expenseId, userId])` | One share per person per expense. |
+| `allocatedPct Float?` | `allocatedBps Int?` (basis points: 3333 = 33.33%) | Integer math for percentage splits; 1 basis point equals the 0.01% input tolerance. |
+| No CHECK constraints | Expense and settlement amounts > 0; shares ≥ 0; basis points 0–10000; settlement payer ≠ payee | The database rejects invalid money rows, not only API validation. |
+| Indexes only from unique keys | Indexes on foreign keys and common lookups | PostgreSQL does not index foreign keys automatically. |
+| `Settlement` without `updatedAt` | Adds `updatedAt` | Status changes (PENDING → CONFIRMED/DISPUTED) are timestamped. |
+| No audit table | Deferred to #8 (see US-4) | #8 owns the audit trail and adds it in its own migration. |
+
+**Environments:** local development uses PostgreSQL 17 (Homebrew on macOS; Docker or the official installer elsewhere), configured only through `DATABASE_URL` in an untracked `.env`. CI uses a PostgreSQL 17 service container. Deployed environments (later issues) use hosted PostgreSQL such as Neon, as the blueprint plans, with separate preview and production databases.
+
+**ORM version:** Prisma 6.19.3, pinned. It runs the blueprint's schema syntax unchanged and is the standard pairing with Next.js 14. Prisma 7 uses a different setup (new generator and output folder, connection URL in a separate config file), and npm's `latest` tag currently points to a Prisma 8 release candidate. Upgrading Prisma is a separate chore.
 
 Planned endpoint inventory from the blueprint (verify request/response schemas before implementation):
 
@@ -122,7 +143,7 @@ Use mobile-first layouts, keyboard-accessible controls, visible focus, semantic 
 3. Actual approved screen mockups and issue acceptance criteria refine behavior, when available.
 4. Any contradiction or missing detail should be surfaced to the two partners, **not silently invented**.
 
-Open questions: partner approval of the proposed UI mockups and whether an earlier Claude/Figma prototype exists; global versus per-group admin authority; audit event persistence; invite-token expiration; equal split when payer is excluded; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made.
+Open questions: partner approval of the proposed UI mockups and whether an earlier Claude/Figma prototype exists; invite-token expiration; equal split when payer is excluded; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made. Resolved in #2: admin scope (US-6), audit-event persistence (US-4), and the [data model decisions](#data-model-decisions).
 
 ### Course references
 
