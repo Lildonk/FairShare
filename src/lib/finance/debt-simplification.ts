@@ -37,8 +37,6 @@ export class InvalidBalanceError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'InvalidBalanceError';
-    // Restore prototype chain for instanceof checks with TypeScript targets < ES2015
-    Object.setPrototypeOf(this, InvalidBalanceError.prototype);
   }
 }
 
@@ -55,13 +53,13 @@ function isSafeIntegerCents(value: number): boolean {
 }
 
 /**
- * Ordinal string comparator: uses `<` / `>` operators, not localeCompare.
- * Produces deterministic ordering independent of locale settings.
+ * Ordinal string comparator for distinct IDs: uses `<` (never localeCompare)
+ * for deterministic, locale-independent ordering.
+ * Returns -1 if a < b, else 1. Equality (0) is omitted because callers
+ * guarantee memberIds are distinct.
  */
-function ordinalCompare(a: string, b: string): number {
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
+function compareDistinctMemberIds(a: string, b: string): number {
+  return a < b ? -1 : 1;
 }
 
 // ─── computeNetBalances ──────────────────────────────────────────────────────
@@ -107,7 +105,8 @@ export function computeNetBalances(entries: LedgerEntry[]): MemberBalance[] {
     }
   }
 
-  // Build result array and sort by memberId ordinal
+  // Build result array and sort by memberId ordinal ascending.
+  // IDs are guaranteed distinct here because Map keys are unique after aggregation.
   const result: MemberBalance[] = [];
   for (const [memberId, totals] of aggregated) {
     result.push({
@@ -116,7 +115,7 @@ export function computeNetBalances(entries: LedgerEntry[]): MemberBalance[] {
     });
   }
 
-  result.sort((a, b) => ordinalCompare(a.memberId, b.memberId));
+  result.sort((a, b) => compareDistinctMemberIds(a.memberId, b.memberId));
   return result;
 }
 
@@ -182,16 +181,18 @@ export function simplifyDebts(balances: MemberBalance[]): Transfer[] {
     // Skip zero balances
   }
 
-  // Sort debtors: by remaining descending, then memberId ordinal ascending
+  // Sort debtors: by remaining descending, then memberId ordinal ascending.
+  // IDs are guaranteed distinct because duplicate memberIds were validated and rejected above.
   debtors.sort((a, b) => {
     if (b.remaining !== a.remaining) return b.remaining - a.remaining;
-    return ordinalCompare(a.memberId, b.memberId);
+    return compareDistinctMemberIds(a.memberId, b.memberId);
   });
 
-  // Sort creditors: by remaining descending, then memberId ordinal ascending
+  // Sort creditors: by remaining descending, then memberId ordinal ascending.
+  // IDs are guaranteed distinct because duplicate memberIds were validated and rejected above.
   creditors.sort((a, b) => {
     if (b.remaining !== a.remaining) return b.remaining - a.remaining;
-    return ordinalCompare(a.memberId, b.memberId);
+    return compareDistinctMemberIds(a.memberId, b.memberId);
   });
 
   // Two-pointer walk: no re-sorting
