@@ -4,7 +4,10 @@ import { Prisma } from '@prisma/client';
 const INTEGER_AMOUNT_FIELDS = new Set(['amountCents', 'owedCents', 'allocatedBps']);
 
 // Prisma's atomic number operators, for example { increment: 5 }.
-const NUMBER_OPERATORS = ['set', 'increment', 'decrement', 'multiply', 'divide'] as const;
+const NUMBER_OPERATORS = ['set', 'increment', 'decrement'] as const;
+// The database would round these (integer division turns 100 / 3 into 33), so money math
+// happens in src/lib/finance and the result is written with `set`.
+const ROUNDING_OPERATORS = ['multiply', 'divide'] as const;
 
 // Parts of a write call that carry values to store. Top-level filters such as `where` are skipped.
 const WRITE_PAYLOAD_KEYS = ['data', 'create', 'update'] as const;
@@ -48,6 +51,15 @@ function checkAmount(value: unknown, path: string): void {
   }
 
   if (isPlainObject(value)) {
+    for (const operator of ROUNDING_OPERATORS) {
+      if (operator in value) {
+        throw new Prisma.PrismaClientValidationError(
+          `${path}.${operator} is not allowed on amounts because the database would round the result. ` +
+            'Calculate the new amount in src/lib/finance and write it with `set`.',
+          { clientVersion: Prisma.prismaVersion.client },
+        );
+      }
+    }
     for (const operator of NUMBER_OPERATORS) {
       if (operator in value) checkAmount(value[operator], `${path}.${operator}`);
     }

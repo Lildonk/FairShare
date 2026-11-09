@@ -54,6 +54,18 @@ describe('assertIntegerAmounts', () => {
     );
   });
 
+  it('rejects multiply and divide on amounts, because the database would round the result', () => {
+    // Integer division in PostgreSQL: { divide: 3 } on 100 stores 33 and drops a cent.
+    expect(() => assertIntegerAmounts({ data: { amountCents: { divide: 3 } } })).toThrow(
+      Prisma.PrismaClientValidationError,
+    );
+    expect(() => assertIntegerAmounts({ data: { owedCents: { divide: 2 } } })).toThrow(/data\.owedCents\.divide/);
+    expect(() => assertIntegerAmounts({ data: { allocatedBps: { multiply: 2 } } })).toThrow(
+      /data\.allocatedBps\.multiply/,
+    );
+    expect(() => assertIntegerAmounts({ data: { amountCents: { decrement: 100 } } })).not.toThrow();
+  });
+
   it('checks both the create and update branches of an upsert', () => {
     expect(() =>
       assertIntegerAmounts({
