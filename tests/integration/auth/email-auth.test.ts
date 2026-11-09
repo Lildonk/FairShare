@@ -156,7 +156,7 @@ describe('POST /api/v1/auth/login', () => {
 
 describe('POST /api/v1/auth/logout', () => {
   it('clears the session cookie', async () => {
-    const response = await logout(jsonRequest('/api/v1/auth/logout', { method: 'POST' }));
+    const response = await logout();
     const cookie = sessionCookieFrom(response);
 
     expect(response.status).toBe(204);
