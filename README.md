@@ -49,11 +49,43 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
    npm run db:seed      # load the sample data
    ```
 
-The sample data is deterministic: fixed ids and timestamps, and amounts in integer cents whose splits add up exactly. It has five users on the reserved `.test` domain (`alice@`, `bob@`, `charlie@`, `dana@`, and the platform admin `admin@fairshare.test`), three groups (Lake Tahoe Trip, Apartment 4B, and the archived Spring Break 2026), one expense of each split type, and settlements in each status. Running the seed again restores these rows without duplicating them. Seed users have no passwords until sign-in is added in #3.
+The sample data is deterministic: fixed ids and timestamps, and amounts in integer cents whose splits add up exactly. It has five users on the reserved `.test` domain (`alice@`, `bob@`, `charlie@`, `dana@`, and the platform admin `admin@fairshare.test`), three groups (Lake Tahoe Trip, Apartment 4B, and the archived Spring Break 2026), one expense of each split type, and settlements in each status. Running the seed again restores these rows without duplicating them. Every seed user signs in with the password `fairshare-demo` (local development only: the seed refuses to run when `NODE_ENV` is `production`).
 
 **Using the database in code:** always import the shared client with `import { prisma } from '@/lib/db/prisma'`, and never create another `PrismaClient`. The shared client rejects non-integer amounts (`amountCents`, `owedCents`, `allocatedBps`); plain Prisma silently truncates them (19.99 is stored as 19).
 
 **Changing the schema:** edit `prisma/schema.prisma`, run `npm run db:migrate -- --name <short-description>`, and commit the new folder in `prisma/migrations/`. CHECK constraints on money columns are written by hand in the migration SQL because the Prisma schema cannot express them. The reasons for each schema choice are in the [data model decisions](docs/FAIRSHARE_PRODUCT_SPEC.md#data-model-decisions).
+
+## Authentication
+
+FairShare supports email/password and **Continue with Google**. Both create the same session.
+
+- **Session:** a signed JWT (HS256, 7 days) in the `fairshare_session` cookie, which is `HttpOnly`, `SameSite=Lax`, and `Secure` in production. JavaScript can't read it, and no API response contains it. Signing out clears it.
+- **Passwords:** hashed with bcrypt (cost 12). Passwords must be 8 characters to 72 bytes; bcrypt ignores anything longer, so longer ones are rejected instead of being silently cut.
+- **Google:** the OpenID Connect authorization-code flow with PKCE, state, and nonce (`openid-client`). Google's ID token is checked on the server; nothing the browser sends is trusted as identity.
+- **Accounts are never merged by email.** If an email/password account already uses your Google email, sign in with your password first, then choose Continue with Google to connect it. Google accounts with an unverified email are refused.
+
+| Endpoint | Who can call it | Responses |
+| --- | --- | --- |
+| `POST /api/v1/auth/register` | Anyone | `201` and signed in; `400` invalid input; `409` email taken. New accounts are always `MEMBER`. |
+| `POST /api/v1/auth/login` | Anyone | `200` and signed in; `401` for a wrong password or unknown email (same message for both) |
+| `POST /api/v1/auth/logout` | Anyone | `204`, session cookie cleared |
+| `GET /api/v1/auth/me` | Signed in | `200` with your profile; `401` otherwise |
+| `GET /api/v1/auth/google`, `.../google/callback` | Anyone | Redirects to Google and back |
+| `GET /api/v1/groups` | Signed in | `200` with only your groups |
+| `GET /api/v1/groups/:groupId` | Group members | `200`; `403` if you aren't a member; `404` if there is no such group |
+| `GET /api/v1/admin/groups` | `ADMIN` | `200` with every group; `403` for members |
+
+Errors are JSON: `{ "code": "...", "message": "..." }`, plus `fields` for invalid input. The `ADMIN` check reads the role from the database on every request, so removing someone's admin role takes effect at once. Pages under `/groups` and `/admin` send signed-out visitors to `/login`.
+
+In API code, use the guards in `src/lib/auth/current-user.ts` (`requireUser`, `requireGroupMember`, `requireAdmin`) and never read identity from the request body.
+
+### Setting up Google sign-in (optional locally)
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an **OAuth client ID** of type **Web application**.
+2. Add `http://localhost:3000/api/v1/auth/google/callback` as an **Authorized redirect URI** (and the deployed URL's callback later).
+3. Put the client ID and secret in `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+
+Until then, the Google button shows "Google sign-in isn't set up yet."
 
 ## Available Scripts
 
@@ -97,8 +129,10 @@ Copy `.env.example` to `.env` in the project root. Use `.env`, not `.env.local`:
 | Variable | Used by | Example |
 | -------- | ------- | ------- |
 | `DATABASE_URL` | Prisma (app, migrations, seed, integration tests) | `postgresql://postgres:postgres@localhost:5432/fairshare?schema=public` |
+| `JWT_SECRET` | Signs session cookies. At least 32 random characters (`openssl rand -base64 32`). | — |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in (optional locally) | From Google Cloud Console |
+| `APP_URL` | Base URL for the Google redirect URI. Defaults to the request's origin. | `http://localhost:3000` |
 
-Authentication variables (such as `JWT_SECRET`) arrive with #3.
 
 > **Note:** Never commit `.env` or `.env.local` files. They are listed in `.gitignore`.
 
