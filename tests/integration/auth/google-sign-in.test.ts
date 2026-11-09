@@ -103,6 +103,15 @@ describe('GET /api/v1/auth/google', () => {
     expect(redirectTo(response).searchParams.get('error')).toBe('google_unavailable');
     expect(client.discovery).not.toHaveBeenCalled();
   });
+  it('sends people back to the login page if the sign-in cannot be started', async () => {
+    vi.mocked(client.buildAuthorizationUrl).mockImplementationOnce(() => {
+      throw new Error('Google is unreachable');
+    });
+    const response = await startGoogle(new NextRequest(`${BASE_URL}/api/v1/auth/google`));
+
+    expect(redirectTo(response).searchParams.get('error')).toBe('google_failed');
+    expect(setCookie(response, GOOGLE_FLOW_COOKIE)).toBeUndefined();
+  });
 });
 
 describe('GET /api/v1/auth/google/callback', () => {
@@ -185,6 +194,17 @@ describe('GET /api/v1/auth/google/callback', () => {
 
     expect(redirectTo(response).searchParams.get('error')).toBe('google_linked_elsewhere');
     expect((await prisma.user.findUniqueOrThrow({ where: { id: other.id } })).googleSub).toBeNull();
+  });
+
+  it('refuses to connect a second Google account to an account that already has one', async () => {
+    const owner = await createTestUser('Twice', { googleSub: testGoogleSub('TwiceFirst') });
+    const response = await signInWithGoogle(
+      { sub: testGoogleSub('TwiceSecond'), email: 'twice.second@gmail.com', email_verified: true, name: 'Twice' },
+      { cookie: await sessionCookie(owner) },
+    );
+
+    expect(redirectTo(response).searchParams.get('error')).toBe('already_linked_other');
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).googleSub).toBe(testGoogleSub('TwiceFirst'));
   });
 
   it('fails safely when Google rejects the callback', async () => {
