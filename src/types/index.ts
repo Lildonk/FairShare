@@ -5,8 +5,8 @@
  * to avoid floating-point precision issues.
  */
 
-/** User roles within the platform. */
-export type UserRole = 'user' | 'admin';
+/** Platform-wide user role; matches the Prisma `Role` enum (docs/FAIRSHARE_PRODUCT_SPEC.md#data-model-decisions). */
+export type UserRole = 'MEMBER' | 'ADMIN';
 
 /** Supported expense split modes. */
 export type SplitMode = 'EQUAL' | 'EXACT' | 'PERCENTAGE' | 'ITEMIZED';
