@@ -1,4 +1,4 @@
-# FairShare — Shared AI Development Rules (v2.1)
+# FairShare — Shared AI Development Rules (v2.2)
 
 <!-- Shared by Zheqi Lv (@Lildonk) and Zichen Tian (@tianzach).
      Review/update via partner-reviewed PR when architecture or requirements change. -->
@@ -30,7 +30,7 @@ FairShare is a multi-party expense sharing web app for groups, with debt simplif
 - `src/app/`: App Router pages/layouts; `src/app/api/v1/`: HTTP Route Handlers.
 - `src/components/`: reusable accessible UI components.
 - `src/lib/finance/`: pure debt/splitting calculations; no React, Prisma, or I/O.
-- `src/lib/auth/`: JWT verification and authorization; `src/lib/db/`: Prisma access.
+- `src/lib/auth/`: JWT verification and authorization; `src/lib/db/`: Prisma access, only through the shared client in `src/lib/db/prisma.ts` (never `new PrismaClient()`: the shared client rejects non-integer amounts that Prisma would silently truncate).
 - `src/store/`: scoped client state; `src/types/`: shared types.
 - `prisma/`: schema/migrations/seed; `tests/`: integration/E2E suites. Colocate small unit/component tests beside source where consistent.
 
@@ -45,7 +45,7 @@ Use strict TypeScript; no unjustified `any`; `PascalCase` components/types, `cam
 - For debt simplification: each member's `netCents = paidCents - owedCents`; sum of net balances must equal zero; transfers preserve every member's net position; skip zero balances and handle empty/cyclic inputs.
 - Implement the **greedy creditor/debtor matcher** described by the blueprint; it yields **at most N−1 transfers for N nonzero balances**. Do **not** call it a globally minimum-transfer solver.
 - Deterministic means the output depends only on the balances, not on input order or locale: break ties by member ID using ordinal comparison (`a < b`), not `localeCompare`.
-- EQUAL: remainder to payer if payer is included (clarify otherwise). EXACT: exact cent total. PERCENTAGE: validate 100% using the blueprint's 0.01% input tolerance, store percentages as integer basis points (10000 = 100%), then distribute cents deterministically. ITEMIZED: prorate tax/tip and reconcile the last cent.
+- EQUAL: remainder to payer if payer is included; otherwise one cent each by member ID ordinal (#5). EXACT: exact cent total. PERCENTAGE: validate 100% using the blueprint's 0.01% input tolerance, store percentages as integer basis points (10000 = 100%), then distribute cents deterministically. ITEMIZED: prorate tax/tip and reconcile the last cent.
 - No hidden rounding, dropped cents, or mutation of financial history; user references from expenses, splits, and settlements use `onDelete: Restrict`, never `Cascade`. Fail safely with understandable validation errors.
 
 ## UI behavior and accessibility
@@ -94,6 +94,7 @@ Use Vitest for core finance logic (the blueprint targets **100% coverage** for d
 
 ## Revision history
 
+- **v2.2** (2026-11-09, #2): Database access only through the shared Prisma client, because the #2 tests showed plain Prisma truncates fractional cents (19.99 is stored as 19). Recorded the EQUAL rule for an excluded payer, decided in #5.
 - **v2.1** (2026-11-06, #2): Linked the original blueprint now stored in `docs/blueprint/`. Recorded the platform-wide admin decision, basis-point percentages, and restricted deletes for financial history ([data model decisions](docs/FAIRSHARE_PRODUCT_SPEC.md#data-model-decisions)).
 - **v2** (2026-10-28, #4): Refined after the HW3 before/after experiment ([results](docs/hw3/comparison.md)). With v1 active, the AI applied the financial and architecture rules, but it made no TDD commits, changed `package.json` unprompted, worked without the issue text, used locale-dependent tie-breaking, and left one acceptance criterion untested. Added: a RED stop point, a config-change guard, a missing-issue fallback, a precise determinism rule, and an acceptance-criteria-to-test table.
 - **v1** (2026-10-28, #1): Initial shared rules.

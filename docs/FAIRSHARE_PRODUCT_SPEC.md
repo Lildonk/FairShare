@@ -23,7 +23,7 @@ As a member, I want consolidated settlement instructions so our group can pay ea
 
 As a member, I want flexible expense allocations so every participant owes the correct portion.
 
-- EQUAL: split whole cents deterministically; follow the blueprint's rule assigning leftover cents to the payer **when the payer participates**. Clarify an alternative if the payer is excluded.
+- EQUAL: split whole cents deterministically; follow the blueprint's rule assigning leftover cents to the payer **when the payer participates**. If the payer is not splitting, leftover cents go one each to participants in member ID ordinal order (decided in #5).
 - EXACT: user-entered shares must sum to the receipt amount in cents.
 - PERCENTAGE: percentages must sum to 100%, allowing the blueprint's 0.01% input tolerance; convert to precise cent allocations with a deterministic remainder policy.
 - ITEMIZED: assign shared line items and prorate tax, service charges, and tip by item subtotals; final shares must sum exactly to the receipt total.
@@ -93,6 +93,8 @@ Decided in #2 (2026-11-06):
 
 **Environments:** local development uses PostgreSQL 17 (Homebrew on macOS; Docker or the official installer elsewhere), configured only through `DATABASE_URL` in an untracked `.env`. CI uses a PostgreSQL 17 service container. Deployed environments (later issues) use hosted PostgreSQL such as Neon, as the blueprint plans, with separate preview and production databases.
 
+**Shared database client:** Prisma 6 silently truncates fractional numbers written to `Int` columns (19.99 is stored as 19), and the database cannot detect it. App code therefore uses only the shared client in `src/lib/db/prisma.ts`, which rejects non-integer `amountCents`, `owedCents`, and `allocatedBps` with a Prisma validation error. Never create another `PrismaClient`.
+
 **ORM version:** Prisma 6.19.3, pinned. It runs the blueprint's schema syntax unchanged and is the standard pairing with Next.js 14. Prisma 7 uses a different setup (new generator and output folder, connection URL in a separate config file), and npm's `latest` tag currently points to a Prisma 8 release candidate. Upgrading Prisma is a separate chore.
 
 Planned endpoint inventory from the blueprint (verify request/response schemas before implementation):
@@ -143,7 +145,7 @@ Use mobile-first layouts, keyboard-accessible controls, visible focus, semantic 
 3. Actual approved screen mockups and issue acceptance criteria refine behavior, when available.
 4. Any contradiction or missing detail should be surfaced to the two partners, **not silently invented**.
 
-Open questions: partner approval of the proposed UI mockups and whether an earlier Claude/Figma prototype exists; invite-token expiration; equal split when payer is excluded; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made. Resolved in #2: admin scope (US-6), audit-event persistence (US-4), and the [data model decisions](#data-model-decisions).
+Open questions: partner approval of the proposed UI mockups and whether an earlier Claude/Figma prototype exists; invite-token expiration; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made. Resolved: admin scope (US-6), audit-event persistence (US-4), and the [data model decisions](#data-model-decisions) in #2; equal split when the payer is excluded (US-2) in #5.
 
 ### Course references
 
