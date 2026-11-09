@@ -4,7 +4,7 @@ Multi-party expense sharing web app for groups — with debt simplification, fou
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) v20+ (LTS recommended)
+- [Node.js](https://nodejs.org/) 20.19+, 22.13+, or 24+ (required by Vite 8 and jsdom 29)
 - [npm](https://www.npmjs.com/) (ships with Node.js)
 - [PostgreSQL](https://www.postgresql.org/) 17 (see [Database Setup](#database-setup))
 
