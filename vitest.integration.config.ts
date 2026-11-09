@@ -9,6 +9,8 @@ config({ quiet: true });
 export default defineConfig({
   test: {
     environment: 'node',
+    // Test-only signing key, so tests never depend on a developer's real .env secret.
+    env: { JWT_SECRET: 'test-only-jwt-secret-not-used-anywhere-else' },
     include: ['tests/integration/**/*.{test,spec}.ts'],
     // Test files share one database, so run them one at a time.
     fileParallelism: false,

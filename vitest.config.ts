@@ -8,6 +8,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test-setup.ts'],
+    // Test-only signing key, so tests never depend on a developer's real .env secret.
+    env: { JWT_SECRET: 'test-only-jwt-secret-not-used-anywhere-else' },
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
       'prisma/**/*.{test,spec}.ts',
