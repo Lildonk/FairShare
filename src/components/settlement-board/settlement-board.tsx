@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Check } from 'lucide-react';
 import { simplifyDebts, type Transfer } from '@/lib/finance/debt-simplification';
 import {
@@ -79,6 +79,9 @@ function ReadyBoard({
   data: SettlementBoardData;
   onRecordPayment: SettlementBoardProps['onRecordPayment'];
 }) {
+  const headingId = useId();
+  const balancesHeadingId = `${headingId}-balances`;
+  const transfersHeadingId = `${headingId}-transfers`;
   const nextKey = useRef(0);
   const [inFlight, setInFlight] = useState<InFlightPayment[]>([]);
   const [saved, setSaved] = useState<SettlementRecord[]>([]);
@@ -149,8 +152,8 @@ function ReadyBoard({
         {notice}
       </p>
 
-      <section aria-labelledby="balances-heading">
-        <h3 id="balances-heading" className="text-lg font-medium text-gray-900">
+      <section aria-labelledby={balancesHeadingId}>
+        <h3 id={balancesHeadingId} className="text-lg font-medium text-gray-900">
           Balances
         </h3>
         <ul aria-label="Member balances" className="mt-3 flex flex-wrap gap-2">
@@ -164,8 +167,8 @@ function ReadyBoard({
         </ul>
       </section>
 
-      <section aria-labelledby="transfers-heading">
-        <h3 id="transfers-heading" className="text-lg font-medium text-gray-900">
+      <section aria-labelledby={transfersHeadingId}>
+        <h3 id={transfersHeadingId} className="text-lg font-medium text-gray-900">
           Suggested transfers
         </h3>
         {data.expenses.length === 0 ? (
