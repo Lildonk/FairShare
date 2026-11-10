@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { Download, Flag, FlagOff } from 'lucide-react';
 import type { LedgerExportRow } from '@/lib/audit/ledger-export';
 import { formatCents } from '@/lib/finance/money-input';
@@ -70,7 +70,6 @@ function ReadyLedger({
   onToggleDispute: ActivityLedgerProps['onToggleDispute'];
   exportLinks: ActivityLedgerProps['exportLinks'];
 }) {
-  const summaryId = useId();
   // Dispute flags changed on this page, applied over the loaded entries (optimistic update).
   const [flags, setFlags] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [saving, setSaving] = useState<ReadonlySet<string>>(new Set());
@@ -127,7 +126,7 @@ function ReadyLedger({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         {reviewCount > 0 ? (
-          <p id={summaryId} className="font-medium text-amber-800">
+          <p className="font-medium text-amber-800">
             {reviewCount === 1 ? '1 entry needs review.' : `${reviewCount} entries need review.`}
           </p>
         ) : (
@@ -167,6 +166,8 @@ function ReadyLedger({
               {row.type === 'EXPENSE' && (
                 <button
                   type="button"
+                  // The accessible name starts with the visible label (WCAG 2.5.3 Label in Name).
+                  aria-label={`${disputed ? 'Clear dispute' : 'Flag for review'}: ${row.description}`}
                   disabled={saving.has(row.id)}
                   onClick={() => void toggleDispute(row)}
                   className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
@@ -176,10 +177,7 @@ function ReadyLedger({
                   ) : (
                     <Flag className="h-4 w-4" aria-hidden="true" />
                   )}
-                  <span className="sr-only">
-                    {disputed ? `Clear dispute on ${row.description}` : `Flag ${row.description} for review`}
-                  </span>
-                  <span aria-hidden="true">{disputed ? 'Clear dispute' : 'Flag for review'}</span>
+                  {disputed ? 'Clear dispute' : 'Flag for review'}
                 </button>
               )}
             </li>

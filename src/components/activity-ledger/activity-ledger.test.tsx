@@ -122,8 +122,8 @@ describe('ActivityLedger', () => {
   describe('dispute toggle', () => {
     it('offers a flag button on undisputed expenses and a clear button on disputed ones', () => {
       setup();
-      expect(screen.getByRole('button', { name: 'Flag Dinner for review' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Clear dispute on Taxi' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Flag for review: Dinner' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Clear dispute: Taxi' })).toBeInTheDocument();
     });
 
     it('does not offer a dispute toggle on payments', () => {
@@ -135,7 +135,7 @@ describe('ActivityLedger', () => {
       const { user, onToggleDispute } = setup();
       onToggleDispute.mockReturnValue(deferred().promise);
 
-      await user.click(screen.getByRole('button', { name: 'Flag Dinner for review' }));
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
 
       expect(onToggleDispute).toHaveBeenCalledWith('e-1', true);
       expect(within(entry('Alice paid $800.00 for Dinner')).getByText('Disputed')).toBeInTheDocument();
@@ -146,27 +146,27 @@ describe('ActivityLedger', () => {
       const { user, onToggleDispute } = setup();
       onToggleDispute.mockReturnValue(deferred().promise);
 
-      await user.click(screen.getByRole('button', { name: 'Flag Dinner for review' }));
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
 
-      expect(screen.getByRole('button', { name: 'Clear dispute on Dinner' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Clear dispute: Dinner' })).toBeDisabled();
     });
 
     it('announces the change once the server saves it', async () => {
       const { user, onToggleDispute } = setup();
       onToggleDispute.mockResolvedValue();
 
-      await user.click(screen.getByRole('button', { name: 'Clear dispute on Taxi' }));
+      await user.click(screen.getByRole('button', { name: 'Clear dispute: Taxi' }));
 
       expect(onToggleDispute).toHaveBeenCalledWith('e-2', false);
       expect(await screen.findByRole('status')).toHaveTextContent('Dispute cleared on Taxi.');
-      expect(screen.getByRole('button', { name: 'Flag Taxi for review' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Flag for review: Taxi' })).toBeEnabled();
     });
 
     it('announces a new flag once the server saves it', async () => {
       const { user, onToggleDispute } = setup();
       onToggleDispute.mockResolvedValue();
 
-      await user.click(screen.getByRole('button', { name: 'Flag Dinner for review' }));
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
 
       expect(await screen.findByRole('status')).toHaveTextContent('Dinner flagged for review.');
     });
@@ -175,12 +175,12 @@ describe('ActivityLedger', () => {
       const { user, onToggleDispute } = setup();
       onToggleDispute.mockRejectedValue(new Error('Network down'));
 
-      await user.click(screen.getByRole('button', { name: 'Flag Dinner for review' }));
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'Couldn’t update the dispute on Dinner. Please try again.',
       );
-      expect(screen.getByRole('button', { name: 'Flag Dinner for review' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Flag for review: Dinner' })).toBeEnabled();
       expect(screen.getByText('1 entry needs review.')).toBeInTheDocument();
     });
 
@@ -189,9 +189,9 @@ describe('ActivityLedger', () => {
       onToggleDispute.mockRejectedValueOnce(new Error('Network down'));
       onToggleDispute.mockResolvedValueOnce();
 
-      await user.click(screen.getByRole('button', { name: 'Flag Dinner for review' }));
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
       await screen.findByRole('alert');
-      await user.click(screen.getByRole('button', { name: 'Flag Dinner for review' }));
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
 
       expect(await screen.findByRole('status')).toHaveTextContent('Dinner flagged for review.');
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
