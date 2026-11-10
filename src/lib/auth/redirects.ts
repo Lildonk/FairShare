@@ -10,10 +10,23 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   google_unavailable: "Google sign-in isn't set up yet. Use your email and password instead.",
 };
 
+// A stand-in origin for parsing `next`. The `.invalid` domain is reserved, so it is never a real site.
+const SAME_SITE_BASE = 'https://fairshare.invalid';
+
 /** Returns `next` only if it is a path on this site; anything else falls back to the home page. */
 export function safeNextPath(next: string | null | undefined): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return '/';
-  return next;
+  if (!next?.startsWith('/')) return '/';
+  try {
+    // Parse instead of checking prefixes: URL parsing removes tabs and newlines and reads `\` as `/`,
+    // so "/\t/evil.example" is really "//evil.example", a link to another site.
+    const url = new URL(next, SAME_SITE_BASE);
+    const path = `${url.pathname}${url.search}${url.hash}`;
+    // Check the parsed path too: "/.//evil.example" stays on this site, but it resolves to
+    // "//evil.example", which a browser would read as another site.
+    return url.origin === SAME_SITE_BASE && !path.startsWith('//') ? path : '/';
+  } catch {
+    return '/'; // not a valid URL at all, such as "//["
+  }
 }
 
 /** The message for an `?error=` code on the login page, or null for unknown codes. */
