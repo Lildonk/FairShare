@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { authErrorMessage, safeNextPath } from './redirects';
 
 describe('safeNextPath', () => {
-  it('keeps a same-site path, including its query string', () => {
+  it('keeps a same-site path, including its query string and fragment', () => {
     expect(safeNextPath('/groups/123?tab=expenses')).toBe('/groups/123?tab=expenses');
+    expect(safeNextPath('/groups/123#balances')).toBe('/groups/123#balances');
   });
 
   it('falls back to the home page for anything that could leave the site', () => {
@@ -12,6 +13,30 @@ describe('safeNextPath', () => {
       expect(safeNextPath(next), String(next)).toBe('/');
     }
   });
+
+  // URL parsing removes tabs and newlines, so each of these really starts with "//" or "/\".
+  it.each(['/\t/evil.example', '/\n/evil.example', '/\r/evil.example', '/\t\\evil.example'])(
+    'falls back to the home page when a tab or newline hides a second slash: %j',
+    (next) => {
+      expect(safeNextPath(next)).toBe('/');
+    },
+  );
+
+  // These look like same-site paths, but resolving "." and ".." leaves "//evil.example",
+  // which a browser reads as another site.
+  it.each(['/.//evil.example', '/..//evil.example', '/%2e%2e//evil.example'])(
+    'falls back to the home page when resolving the path would leave two leading slashes: %j',
+    (next) => {
+      expect(safeNextPath(next)).toBe('/');
+    },
+  );
+
+  it.each(['//[', '/\t/[', '/\n/evil.example:99999'])(
+    'falls back to the home page instead of throwing when next is not a valid URL: %j',
+    (next) => {
+      expect(safeNextPath(next)).toBe('/');
+    },
+  );
 });
 
 describe('authErrorMessage', () => {

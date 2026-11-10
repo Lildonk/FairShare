@@ -80,6 +80,15 @@ describe('LoginForm', () => {
     expect(push).toHaveBeenCalledWith('/');
   });
 
+  it('never redirects to another site when a tab hides a second slash in next', async () => {
+    mockFetch(200, { user: { id: 'user-1' } });
+    render(<LoginForm next={'/\t/evil.example'} />);
+
+    await fillAndSubmit('alice@example.com', 'correct horse');
+
+    expect(push).toHaveBeenCalledWith('/');
+  });
+
   it('shows the server message when the email or password is wrong', async () => {
     mockFetch(401, { code: 'invalid_credentials', message: 'Incorrect email or password.' });
     render(<LoginForm />);
