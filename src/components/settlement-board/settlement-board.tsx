@@ -76,6 +76,12 @@ interface InFlightPayment {
   payment: PaymentRequest;
 }
 
+/** A settlement saved from this board, and the data it was saved on top of. */
+interface SavedPayment {
+  basis: SettlementBoardData;
+  settlement: SettlementRecord;
+}
+
 function ReadyBoard({
   data,
   onRecordPayment,
@@ -88,7 +94,10 @@ function ReadyBoard({
   const transfersHeadingId = `${headingId}-transfers`;
   const nextKey = useRef(0);
   const [inFlight, setInFlight] = useState<InFlightPayment[]>([]);
-  const [saved, setSaved] = useState<SettlementRecord[]>([]);
+  const [saved, setSaved] = useState<SavedPayment[]>([]);
+  // The data the board shows right now, read when a save finishes.
+  const dataRef = useRef(data);
+  dataRef.current = data;
   const [notice, setNotice] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -96,11 +105,13 @@ function ReadyBoard({
   const nameOf = (id: string) => names.get(id) ?? 'Unknown member';
 
   // In-flight payments count as confirmed until the server answers (optimistic update).
+  // A saved payment counts only on top of the data it was saved against: once the page passes
+  // refreshed data, that data is the source of truth and already includes the payment.
   // Inconsistent records give null, so the board shows an error instead of crashing.
   const computed = useMemo(() => {
     const settlements: SettlementRecord[] = [
       ...data.settlements,
-      ...saved,
+      ...saved.filter((entry) => entry.basis === data).map((entry) => entry.settlement),
       ...inFlight.map(({ payment }) => ({ ...payment, status: 'CONFIRMED' as const })),
     ];
     try {
@@ -128,12 +139,13 @@ function ReadyBoard({
     const from = nameOf(payment.fromUserId);
     const to = nameOf(payment.toUserId);
     const key = nextKey.current++;
+    const basis = dataRef.current;
     setInFlight((current) => [...current, { key, payment }]);
     setNotice(`Recording ${from}’s payment to ${to}…`);
 
     try {
       const settlement = await onRecordPayment(payment);
-      setSaved((current) => [...current, settlement]);
+      setSaved((current) => [...current, { basis, settlement }]);
       setError(null);
       setNotice(
         settlement.status === 'CONFIRMED'
