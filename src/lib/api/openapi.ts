@@ -343,6 +343,28 @@ export const openApiDocument = {
         },
       },
     },
+    '/api/v1/admin/groups/{groupId}/archive': {
+      patch: {
+        tags: ['Admin'],
+        summary: 'Archive a group',
+        description:
+          'Freezes the group’s ledger: adding, changing, or deleting expenses, recording or answering payments, ' +
+          'and joining then answer 409, while members can still read everything. Archiving twice changes ' +
+          'nothing. The admin need not be a member. There is no unarchive yet.',
+        security: SIGNED_IN,
+        parameters: [groupId],
+        responses: {
+          '200': jsonBody('The archived group.', {
+            type: 'object',
+            required: ['group'],
+            properties: { group: schema('AdminGroup') },
+          }),
+          '401': response('Unauthorized'),
+          '403': response('Forbidden'),
+          '404': jsonBody('No such group (`not_found`). Only admins get this far.', schema('Error')),
+        },
+      },
+    },
     '/api/v1/simplify': {
       post: {
         tags: ['Calculators'],
