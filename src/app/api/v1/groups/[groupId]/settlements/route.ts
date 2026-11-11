@@ -10,7 +10,8 @@ import { HttpError, errorResponse, readJson } from '@/lib/http/responses';
 
 export const dynamic = 'force-dynamic';
 
-type Context = { params: { groupId: string } };
+// Next.js 15 passes route params as a promise.
+type Context = { params: Promise<{ groupId: string }> };
 
 /**
  * GET /api/v1/groups/:groupId/settlements: each member's balance (confirmed payments count, pending
@@ -18,7 +19,7 @@ type Context = { params: { groupId: string } };
  */
 export async function GET(request: NextRequest, { params }: Context) {
   try {
-    const { group } = await requireGroupMember(request, params.groupId);
+    const { group } = await requireGroupMember(request, (await params).groupId);
     const [memberIds, expenses, settlements] = await Promise.all([
       groupMemberIds(group.id),
       prisma.expense.findMany({ where: { groupId: group.id }, include: { splits: true } }),
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest, { params }: Context) {
  */
 export async function POST(request: NextRequest, { params }: Context) {
   try {
-    const { user, group } = await requireGroupMember(request, params.groupId, { write: true });
+    const { user, group } = await requireGroupMember(request, (await params).groupId, { write: true });
     const input = validatePaymentInput(await readJson(request), await groupMemberIds(group.id));
     if (!input.ok) throw new HttpError(400, 'invalid_input', 'Check the highlighted fields.', input.errors);
 
