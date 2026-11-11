@@ -43,12 +43,12 @@ export async function requireGroupMember(
   groupId: string,
 ): Promise<{ user: User; group: Group }> {
   const user = await requireUser(request);
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-  if (!group) throw new HttpError(404, 'not_found', 'Group not found.');
-
+  // One lookup covers both cases: a group you aren't in gets the same 404 as one that doesn't
+  // exist, so the answer never reveals which group IDs are real.
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId: user.id, groupId } },
+    include: { group: true },
   });
-  if (!membership) throw new HttpError(403, 'forbidden', 'You are not a member of this group.');
-  return { user, group };
+  if (!membership) throw new HttpError(404, 'not_found', 'Group not found.');
+  return { user, group: membership.group };
 }
