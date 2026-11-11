@@ -69,12 +69,13 @@ describe('PATCH /api/v1/admin/groups/:groupId/archive', () => {
     await archive(group.id, admin);
     const cookie = await sessionCookie(alice);
 
+    // Next.js 15 passes route params as a promise.
     const add = await createExpense(
       jsonRequest(`/api/v1/groups/${group.id}/expenses`, { method: 'POST', body: taxi(alice.id), cookie }),
-      { params: { groupId: group.id } },
+      { params: Promise.resolve({ groupId: group.id }) },
     );
     const read = await listExpenses(jsonRequest(`/api/v1/groups/${group.id}/expenses`, { cookie }), {
-      params: { groupId: group.id },
+      params: Promise.resolve({ groupId: group.id }),
     });
 
     expect(add.status).toBe(409);
