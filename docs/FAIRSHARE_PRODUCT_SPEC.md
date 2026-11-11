@@ -126,6 +126,14 @@ Decided in #3 (2026-11-09):
 - **Admin checks read the role from the database**, not the token, so a demoted admin loses access at once. The page middleware uses the token's role only to choose a redirect.
 - **Not in scope for #3:** email verification, password reset, rate limiting of login attempts, and session revocation before the 7-day expiry.
 
+### API decisions
+
+Proposed in #9 (2026-11-10), for partner review:
+
+- **Calculator request shapes.** The blueprint names the public endpoints but not their bodies. `POST /api/v1/simplify` takes raw debts (`fromMemberId` owes `toMemberId` `amountCents`) and returns net balances plus transfers. `POST /api/v1/split/calculate` takes a `splitType` and that mode's inputs (percentages as basis points), covering all four split modes rather than only ITEMIZED. Member IDs are free-form labels, so the endpoints never touch real accounts.
+- **Limits on public input:** at most 1000 debts, 100 members per split, and 200 receipt items, with member IDs up to 100 characters.
+- **Swagger UI from a CDN, not npm.** `/api/docs` loads `swagger-ui-dist` 5.34.0 from jsDelivr with integrity hashes checked against the npm tarball, under a Content-Security-Policy that allows only those files. This adds no dependency, and keeps working through the planned React 19 upgrade.
+
 ## 4. UI/UX design intent and user flows
 
 The blueprint names features and behaviors but contained no screen mockups. Four new [FairShare UI mockups](mockups/README.md) were created for HW3: [Authentication](mockups/01-auth.svg), [Group Dashboard](mockups/02-group-dashboard.svg), [Add Expense](mockups/03-add-expense.svg), and [Settlement](mockups/04-settlements.svg). These are proposed designs derived from the blueprint, **not** screenshots from an existing Claude/Figma prototype. The login screen includes email/password and the newly selected Google sign-in option. Confirm them together before treating them as approved mockups.
