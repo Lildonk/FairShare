@@ -9,6 +9,7 @@ import { InvalidSplitError } from '@/lib/finance/itemized-split';
 import { splitEqual, splitPercentage, type ShareAllocation } from '@/lib/finance/split-calculation';
 import {
   bodyFields,
+  checkDistinct,
   isRecord,
   nonNegativeCents,
   positiveCents,
@@ -101,7 +102,7 @@ export function validateExpenseInput(body: unknown, memberIds: readonly string[]
     }
     return { userId, owedCents, allocatedBps };
   });
-  if (new Set(splits.map((s) => s.userId)).size !== splits.length) errors.splits ??= 'List each person only once.';
+  checkDistinct(splits.map((s) => s.userId), 'splits', errors, 'List each person only once.');
 
   const input: ExpenseInput = { title, amountCents, payerId, splitType: splitType ?? 'EXACT', category, splits };
   if (Object.keys(errors).length === 0) checkShares(input, errors);

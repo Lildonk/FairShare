@@ -43,9 +43,43 @@ export function redirectToLogin(request: NextRequest, errorCode: string): NextRe
   return NextResponse.redirect(url);
 }
 
+/** The largest request body any endpoint accepts: about twice the largest valid calculator body. */
+export const MAX_BODY_BYTES = 512 * 1024;
+
+const tooLarge = () => new HttpError(413, 'payload_too_large', 'The request body is too large.');
+
+/** Reads the body as text, but stops at `limit` bytes, so an oversized request is never buffered whole. */
+async function readBodyText(request: Request, limit: number): Promise<string> {
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) {
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+/** Parses a JSON body of at most MAX_BODY_BYTES: 413 if it is larger, 400 if it isn't JSON. */
 export async function readJson(request: Request): Promise<unknown> {
+  // Content-Length can be missing or wrong, so it is only a shortcut; counting the bytes decides.
+  if (Number(request.headers.get('content-length')) > MAX_BODY_BYTES) throw tooLarge();
+  const text = await readBodyText(request, MAX_BODY_BYTES);
   try {
-    return await request.json();
+    return JSON.parse(text);
   } catch {
     throw new HttpError(400, 'invalid_input', 'Send the request body as JSON.');
   }

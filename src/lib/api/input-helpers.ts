@@ -34,6 +34,15 @@ export function nonNegativeCents(value: unknown, field: string, errors: Errors):
   return 0;
 }
 
+/**
+ * Records `message` when an ID repeats. Invalid IDs come back as '' and already have their own
+ * error, so they don't count as repeats.
+ */
+export function checkDistinct(ids: readonly string[], field: string, errors: Errors, message: string): void {
+  const valid = ids.filter((id) => id !== '');
+  if (new Set(valid).size !== valid.length) errors[field] ??= message;
+}
+
 /** Trimmed text of 1 to `max` characters. */
 export function requiredText(value: unknown, field: string, errors: Errors, max: number): string {
   const text = typeof value === 'string' ? value.trim() : '';

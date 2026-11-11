@@ -8,6 +8,7 @@ import type { ExactShare, PercentageShare } from '@/lib/finance/split-calculatio
 import type { ReceiptItem } from '@/lib/finance/itemized-split';
 import {
   bodyFields,
+  checkDistinct,
   isRecord,
   nonNegativeCents,
   positiveCents,
@@ -51,8 +52,10 @@ function optionalCents(value: unknown, field: string, errors: Errors): number {
   return value === undefined ? 0 : nonNegativeCents(value, field, errors);
 }
 
+/** A member ID, trimmed, so "a" and "a " are the same member. */
 function memberId(value: unknown, field: string, errors: Errors): string {
-  if (typeof value === 'string' && value.trim() !== '' && value.length <= MAX_MEMBER_ID_LENGTH) return value;
+  const id = typeof value === 'string' ? value.trim() : '';
+  if (id !== '' && id.length <= MAX_MEMBER_ID_LENGTH) return id;
   errors[field] = `Enter a member ID of 1 to ${MAX_MEMBER_ID_LENGTH} characters.`;
   return '';
 }
@@ -70,7 +73,7 @@ function record(value: unknown, field: string, errors: Errors): Fields {
 }
 
 function distinctMemberIds(ids: string[], field: string, errors: Errors): void {
-  if (new Set(ids).size !== ids.length) errors[field] ??= 'List each member only once.';
+  checkDistinct(ids, field, errors, 'List each member only once.');
 }
 
 /** Body of `POST /api/v1/simplify`: `{ debts: [{ fromMemberId, toMemberId, amountCents }] }`. */
