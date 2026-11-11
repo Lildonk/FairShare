@@ -2,7 +2,11 @@
 
 import { useId, useMemo, useRef, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Check } from 'lucide-react';
-import { simplifyDebts, type Transfer } from '@/lib/finance/debt-simplification';
+import {
+  InvalidBalanceError,
+  simplifyDebts,
+  type Transfer,
+} from '@/lib/finance/debt-simplification';
 import {
   computeGroupBalances,
   type ExpenseRecord,
@@ -92,21 +96,27 @@ function ReadyBoard({
   const nameOf = (id: string) => names.get(id) ?? 'Unknown member';
 
   // In-flight payments count as confirmed until the server answers (optimistic update).
-  const { balances, transfers } = useMemo(() => {
+  // Inconsistent records give null, so the board shows an error instead of crashing.
+  const computed = useMemo(() => {
     const settlements: SettlementRecord[] = [
       ...data.settlements,
       ...saved,
       ...inFlight.map(({ payment }) => ({ ...payment, status: 'CONFIRMED' as const })),
     ];
-    const computed = computeGroupBalances(
-      data.members.map((m) => m.id),
-      data.expenses,
-      settlements,
-    );
-    return {
-      balances: new Map(computed.map((b) => [b.memberId, b.balanceCents])),
-      transfers: simplifyDebts(computed),
-    };
+    try {
+      const memberBalances = computeGroupBalances(
+        data.members.map((m) => m.id),
+        data.expenses,
+        settlements,
+      );
+      return {
+        balances: new Map(memberBalances.map((b) => [b.memberId, b.balanceCents])),
+        transfers: simplifyDebts(memberBalances),
+      };
+    } catch (err) {
+      if (err instanceof InvalidBalanceError) return null;
+      throw err;
+    }
   }, [data, saved, inFlight]);
 
   const recordPayment = async (transfer: Transfer) => {
@@ -140,6 +150,16 @@ function ReadyBoard({
 
   const describeTransfer = (t: Transfer) =>
     `${nameOf(t.fromMemberId)} pays ${nameOf(t.toMemberId)} ${formatCents(t.amountCents)}`;
+
+  if (computed === null) {
+    return (
+      <p role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-red-800">
+        Couldn’t calculate balances because some records don’t add up. Please refresh, or ask an
+        admin to check this group.
+      </p>
+    );
+  }
+  const { balances, transfers } = computed;
 
   return (
     <>

@@ -248,6 +248,20 @@ describe('SettlementBoard', () => {
       expect(onRetry).toHaveBeenCalledTimes(1);
     });
 
+    it('shows an error instead of crashing when the records do not add up (#25 review)', () => {
+      const broken: ExpenseRecord = {
+        payerId: 'u-alice',
+        amountCents: 1000,
+        splits: [{ userId: 'u-bob', owedCents: 999 }],
+      };
+      setup(ready({ expenses: [...expenses, broken] }));
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Couldn’t calculate balances because some records don’t add up. Please refresh, or ask an admin to check this group.',
+      );
+      expect(screen.queryByRole('list', { name: 'Member balances' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Record payment/ })).not.toBeInTheDocument();
+    });
+
     it('explains the empty state when the group has no expenses', () => {
       setup(ready({ expenses: [] }));
       expect(
