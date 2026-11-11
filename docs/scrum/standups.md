@@ -56,5 +56,5 @@ Each standup answers three questions: what was done since the last one, what com
 
 - **Sprint 1 delivered:** #1 scaffold and CI, #2 schema, migrations, and seed (Zheqi); #4 debt simplification, #5 expense modal, #6 itemized split (Zichen). #3 auth is in final review (#26).
 - **Sprint 2 so far:** #7 settlement board merged (#25); #24 CI and security scanning in review (#27).
-- **Reviews:** Zichen: #18, #19, #23, #26 (twice). Zheqi: #20, #21, #22, #25, and the #26 review replies.
+- **Reviews:** Zichen: #18, #19, #23, #26 (twice). Zheqi: #20, #21, #22, #25.
 - **Open items:** Next.js security upgrade, deployment accounts (Vercel + Neon), #8 audit ledger, #9 API, #10 E2E tests, #11 admin portal.
