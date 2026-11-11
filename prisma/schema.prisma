@@ -35,6 +35,8 @@ model User {
   email               String         @unique
   /// Null for accounts that only sign in with Google.
   passwordHash        String?
+  /// Google's stable account ID (the ID token's `sub`), set on first Google sign-in or when linked.
+  googleSub           String?        @unique
   name                String
   role                Role           @default(MEMBER)
   memberships         GroupMember[]
