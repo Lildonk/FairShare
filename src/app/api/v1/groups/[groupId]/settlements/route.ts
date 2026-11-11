@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { toSettlementDto } from '@/lib/api/ledger-dto';
 import { validatePaymentInput } from '@/lib/api/settlement-input';
 import { requireGroupMember } from '@/lib/auth/current-user';
+import { recordAuditEvent } from '@/lib/db/audit-log';
 import { groupMemberIds } from '@/lib/db/groups';
 import { prisma } from '@/lib/db/prisma';
 import { simplifyDebts } from '@/lib/finance/debt-simplification';
@@ -63,17 +64,27 @@ export async function POST(request: NextRequest, { params }: Context) {
       throw new HttpError(403, 'forbidden', 'Only the payer or the receiver can record this payment.');
     }
     const confirmed = user.id === toUserId;
-    const settlement = await prisma.$transaction((tx) =>
-      tx.settlement.create({
-        data: {
-          ...input.value,
-          groupId: group.id,
-          status: confirmed ? 'CONFIRMED' : 'PENDING',
-          settledAt: confirmed ? new Date() : null,
-        },
-      }),
-    );
-    return NextResponse.json({ settlement: toSettlementDto(settlement) }, { status: 201 });
+    const settlement = await prisma.$transaction(async (tx) => {
+      const created = toSettlementDto(
+        await tx.settlement.create({
+          data: {
+            ...input.value,
+            groupId: group.id,
+            status: confirmed ? 'CONFIRMED' : 'PENDING',
+            settledAt: confirmed ? new Date() : null,
+          },
+        }),
+      );
+      await recordAuditEvent(tx, {
+        groupId: group.id,
+        actorId: user.id,
+        action: 'SETTLEMENT_RECORDED',
+        entityId: created.id,
+        snapshot: created,
+      });
+      return created;
+    });
+    return NextResponse.json({ settlement }, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }
