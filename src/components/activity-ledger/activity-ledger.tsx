@@ -61,6 +61,12 @@ export function ActivityLedger({ state, onToggleDispute, exportLinks }: Activity
   );
 }
 
+interface LocalFlag {
+  disputed: boolean;
+  /** The entries this change was made on. */
+  basis: LedgerExportRow[];
+}
+
 function ReadyLedger({
   entries,
   onToggleDispute,
@@ -71,27 +77,40 @@ function ReadyLedger({
   exportLinks: ActivityLedgerProps['exportLinks'];
 }) {
   // Dispute flags changed on this page, applied over the loaded entries (optimistic update).
-  const [flags, setFlags] = useState<ReadonlyMap<string, boolean>>(new Map());
+  // A flag counts only over the entries it was set on: refreshed entries are the source of truth.
+  const [flags, setFlags] = useState<ReadonlyMap<string, LocalFlag>>(new Map());
   const [saving, setSaving] = useState<ReadonlySet<string>>(new Set());
   const [notice, setNotice] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const isDisputed = (row: LedgerExportRow) => flags.get(row.id) ?? row.status === 'DISPUTED';
-  const setFlag = (id: string, disputed: boolean) =>
-    setFlags((current) => new Map(current).set(id, disputed));
+  const isDisputed = (row: LedgerExportRow) => {
+    const flag = flags.get(row.id);
+    return flag && flag.basis === entries ? flag.disputed : row.status === 'DISPUTED';
+  };
+  const setFlag = (id: string, flag: LocalFlag | undefined) =>
+    setFlags((current) => {
+      const next = new Map(current);
+      if (flag) next.set(id, flag);
+      else next.delete(id);
+      return next;
+    });
 
   const toggleDispute = async (row: LedgerExportRow) => {
+    // aria-disabled (not disabled) keeps focus on the button, so block repeat clicks here.
+    if (saving.has(row.id)) return;
+    const previous = flags.get(row.id);
     const disputed = !isDisputed(row);
-    setFlag(row.id, disputed);
+    setFlag(row.id, { disputed, basis: entries });
     setSaving((current) => new Set(current).add(row.id));
+    // Clear the old message first, so a repeated failure is announced again.
+    setError(null);
     try {
       await onToggleDispute(row.id, disputed);
-      setError(null);
       setNotice(
         disputed ? `${row.description} flagged for review.` : `Dispute cleared on ${row.description}.`,
       );
     } catch {
-      setFlag(row.id, !disputed);
+      setFlag(row.id, previous);
       setError(`Couldn’t update the dispute on ${row.description}. Please try again.`);
       setNotice('');
     } finally {
@@ -168,9 +187,9 @@ function ReadyLedger({
                   type="button"
                   // The accessible name starts with the visible label (WCAG 2.5.3 Label in Name).
                   aria-label={`${disputed ? 'Clear dispute' : 'Flag for review'}: ${row.description}`}
-                  disabled={saving.has(row.id)}
+                  aria-disabled={saving.has(row.id)}
                   onClick={() => void toggleDispute(row)}
-                  className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
                 >
                   {disputed ? (
                     <FlagOff className="h-4 w-4" aria-hidden="true" />

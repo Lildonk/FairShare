@@ -20,6 +20,27 @@ const NODE_RADIUS = 16;
 const ROW_HEIGHT = 64;
 const TOP = 56;
 const BOTTOM = 24;
+/** Characters that fit beside a node at text-sm (about 146 units). */
+const MAX_LABEL_CHARS = 16;
+
+/** Shortens a long name with an ellipsis, counting characters rather than UTF-16 units. */
+function shortLabel(name: string): string {
+  const chars = Array.from(name);
+  return chars.length > MAX_LABEL_CHARS ? `${chars.slice(0, MAX_LABEL_CHARS).join('').trimEnd()}…` : name;
+}
+
+/** A member's name beside their node; a shortened name keeps the full one as a tooltip. */
+function NodeLabel({ name, ...position }: { name: string; x: number; y: number; textAnchor?: 'end' }) {
+  const label = shortLabel(name);
+  return (
+    <>
+      {label !== name && <title>{name}</title>}
+      <text {...position} className="fill-gray-900 text-sm">
+        {label}
+      </text>
+    </>
+  );
+}
 
 /** Member IDs in order of first appearance. */
 function uniqueInOrder(ids: string[]): string[] {
@@ -126,17 +147,13 @@ export function TransactionGraph({ members, transfers }: TransactionGraphProps) 
         {payers.map((id) => (
           <g key={id} data-column="payer">
             <circle cx={PAYER_X} cy={payerY.get(id)} r={NODE_RADIUS} className="fill-red-50 stroke-red-700" strokeWidth={2} />
-            <text x={PAYER_X - NODE_RADIUS - 8} y={(payerY.get(id) as number) + 5} textAnchor="end" className="fill-gray-900 text-sm">
-              {nameOf(id)}
-            </text>
+            <NodeLabel name={nameOf(id)} x={PAYER_X - NODE_RADIUS - 8} y={(payerY.get(id) as number) + 5} textAnchor="end" />
           </g>
         ))}
         {receivers.map((id) => (
           <g key={id} data-column="receiver">
             <circle cx={RECEIVER_X} cy={receiverY.get(id)} r={NODE_RADIUS} className="fill-emerald-50 stroke-emerald-700" strokeWidth={2} />
-            <text x={RECEIVER_X + NODE_RADIUS + 8} y={(receiverY.get(id) as number) + 5} className="fill-gray-900 text-sm">
-              {nameOf(id)}
-            </text>
+            <NodeLabel name={nameOf(id)} x={RECEIVER_X + NODE_RADIUS + 8} y={(receiverY.get(id) as number) + 5} />
           </g>
         ))}
       </svg>
