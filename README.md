@@ -87,6 +87,8 @@ FairShare supports email/password and **Continue with Google**. Both create the 
 
 Errors are JSON: `{ "code": "...", "message": "..." }`, plus `fields` for invalid input. The `ADMIN` check reads the role from the database on every request, so removing someone's admin role takes effect at once. Pages under `/groups` and `/admin` send signed-out visitors to `/login`.
 
+**Groups page:** `/groups` lists your groups (each links to its dashboard at `/groups/{id}`), creates a group and shows its invite code, and joins a group by invite code.
+
 Writes to an archived group answer `409 group_archived`, and request bodies over 512 KiB answer `413`.
 
 In API code, use the guards in `src/lib/auth/current-user.ts` (`requireUser`, `requireGroupMember`, `requireAdmin`) and never read identity from the request body. Any handler that changes a group's records calls `requireGroupMember(request, groupId, { write: true })`, so archived ledgers stay frozen.
