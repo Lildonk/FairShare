@@ -2,13 +2,18 @@ import type { Role, SettlementStatus, SplitType } from '@prisma/client';
 
 // Deterministic sample data for local development and tests: fixed ids, fixed timestamps,
 // reserved .test emails, and integer cents whose splits add up exactly.
-// Seed users have no password yet; #3 adds sign-in.
+
+/** Every seed user signs in with this password. Local development only: seeding refuses to run in production. */
+export const DEMO_PASSWORD = 'fairshare-demo';
+// bcrypt hash of DEMO_PASSWORD (cost 10). Fixed, so re-running the seed changes no rows.
+const DEMO_PASSWORD_HASH = '$2b$10$j8jBGnW5IRqggize1QxzNu9RmgyCNKUNQsz4FzBmQvUORaLYMY4Te';
 
 export interface SeedUser {
   id: string;
   email: string;
   name: string;
   role: Role;
+  passwordHash: string;
 }
 
 export interface SeedGroup {
@@ -85,11 +90,11 @@ function split(id: string, userId: string, owedCents: number, allocatedBps: numb
 
 export const seedData: SeedData = {
   users: [
-    { id: user.alice, email: 'alice@fairshare.test', name: 'Alice Chen', role: 'MEMBER' },
-    { id: user.bob, email: 'bob@fairshare.test', name: 'Bob Martinez', role: 'MEMBER' },
-    { id: user.charlie, email: 'charlie@fairshare.test', name: 'Charlie Kim', role: 'MEMBER' },
-    { id: user.dana, email: 'dana@fairshare.test', name: 'Dana Patel', role: 'MEMBER' },
-    { id: user.admin, email: 'admin@fairshare.test', name: 'FairShare Admin', role: 'ADMIN' },
+    { id: user.alice, email: 'alice@fairshare.test', name: 'Alice Chen', role: 'MEMBER', passwordHash: DEMO_PASSWORD_HASH },
+    { id: user.bob, email: 'bob@fairshare.test', name: 'Bob Martinez', role: 'MEMBER', passwordHash: DEMO_PASSWORD_HASH },
+    { id: user.charlie, email: 'charlie@fairshare.test', name: 'Charlie Kim', role: 'MEMBER', passwordHash: DEMO_PASSWORD_HASH },
+    { id: user.dana, email: 'dana@fairshare.test', name: 'Dana Patel', role: 'MEMBER', passwordHash: DEMO_PASSWORD_HASH },
+    { id: user.admin, email: 'admin@fairshare.test', name: 'FairShare Admin', role: 'ADMIN', passwordHash: DEMO_PASSWORD_HASH },
   ],
 
   groups: [
