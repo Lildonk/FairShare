@@ -36,6 +36,10 @@ const SPLIT_MODES: { value: BasicSplitMode; label: string }[] = [
   { value: 'PERCENTAGE', label: 'Percentage' },
 ];
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), ' +
+  'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 const inputClass =
   'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 ' +
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ' +
@@ -63,7 +67,12 @@ export function AddExpenseDialog({
   const draft = useMemo(() => buildExpenseDraft(form, members), [form, members]);
 
   useEffect(() => {
+    // Remember the control that opened the dialog, and give focus back to it on close.
+    const opener = document.activeElement;
     descriptionRef.current?.focus();
+    return () => {
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
   }, []);
 
   const update = (changes: Partial<ExpenseFormState>) =>
@@ -108,6 +117,22 @@ export function AddExpenseDialog({
     if (event.key === 'Escape') {
       event.stopPropagation();
       onCancel();
+      return;
+    }
+    if (event.key === 'Tab') {
+      // Keep Tab focus inside the modal: wrap from the last control to the first and back.
+      const focusable = Array.from(
+        event.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
   };
 

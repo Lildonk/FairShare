@@ -1,4 +1,4 @@
-# FairShare — Shared AI Development Rules (v2.2)
+# FairShare — Shared AI Development Rules (v2.3)
 
 <!-- Shared by Zheqi Lv (@Lildonk) and Zichen Tian (@tianzach).
      Review/update via partner-reviewed PR when architecture or requirements change. -->
@@ -58,7 +58,7 @@ Use the [four proposed FairShare UI mockups](docs/mockups/README.md) as visual r
 
 Validate external input at API boundaries. Use Prisma/parameterized DB operations; avoid unsafe raw SQL and unsanitized HTML. For email/password login, hash passwords with bcrypt and sign/verify JWTs using approved libraries. For Google sign-in, use a maintained OAuth/OIDC library; verify provider-issued identity and use secure session handling. Never trust a client-submitted Google email or token without server-side verification. For browser sessions, prefer secure HttpOnly/SameSite cookies over exposing tokens to JavaScript; document any Bearer-token API flow. Never trust client-supplied role or user identity.
 
-Authenticate **and authorize** every private group query/mutation against membership; restrict admin endpoints on the server, not only the UI. **Admin is platform-wide** (decided in #2): `User.role = ADMIN` unlocks only `/admin` and `/api/v1/admin/*`; there are no per-group roles, and `role` is never set from client input. Protect archived ledgers from writes, keep public calculator routes stateless and detached from private data, avoid exposing receipts/user information, and never commit `.env`, JWT secrets, or credentials. Use least-privilege configuration, safe error messages, and no secrets in logs.
+Authenticate **and authorize** every private group query/mutation against membership, using the guards in `src/lib/auth/current-user.ts` (`requireUser`, `requireGroupMember`, `requireAdmin`); restrict admin endpoints on the server, not only the UI. **Admin is platform-wide** (decided in #2): `User.role = ADMIN` unlocks only `/admin` and `/api/v1/admin/*`; there are no per-group roles, and `role` is never set from client input. Protect archived ledgers from writes, keep public calculator routes stateless and detached from private data, avoid exposing receipts/user information, and never commit `.env`, JWT secrets, or credentials. Use least-privilege configuration, safe error messages, and no secrets in logs.
 
 Choose reputable dependencies and evaluate package risk. Run dependency/security scanning in CI; keep PR previews isolated from production credentials.
 
@@ -94,6 +94,7 @@ Use Vitest for core finance logic (the blueprint targets **100% coverage** for d
 
 ## Revision history
 
+- **v2.3** (2026-11-09, #3): Private route handlers must use the shared auth guards in `src/lib/auth/current-user.ts`.
 - **v2.2** (2026-11-09, #2): Database access only through the shared Prisma client, because the #2 tests showed plain Prisma truncates fractional cents (19.99 is stored as 19). Recorded the EQUAL rule for an excluded payer, decided in #5.
 - **v2.1** (2026-11-06, #2): Linked the original blueprint now stored in `docs/blueprint/`. Recorded the platform-wide admin decision, basis-point percentages, and restricted deletes for financial history ([data model decisions](docs/FAIRSHARE_PRODUCT_SPEC.md#data-model-decisions)).
 - **v2** (2026-10-28, #4): Refined after the HW3 before/after experiment ([results](docs/hw3/comparison.md)). With v1 active, the AI applied the financial and architecture rules, but it made no TDD commits, changed `package.json` unprompted, worked without the issue text, used locale-dependent tie-breaking, and left one acceptance criterion untested. Added: a RED stop point, a config-change guard, a missing-issue fallback, a precise determinism rule, and an acceptance-criteria-to-test table.

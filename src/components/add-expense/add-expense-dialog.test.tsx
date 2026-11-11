@@ -302,4 +302,48 @@ describe('AddExpenseDialog', () => {
       expect(onCancel).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('focus containment (#7)', () => {
+    it('wraps Tab from the last control back to the first, so focus stays in the dialog', async () => {
+      const { user } = setup();
+      screen.getByRole('button', { name: 'Add expense' }).focus();
+      await user.tab();
+      expect(screen.getByLabelText('Description')).toHaveFocus();
+    });
+
+    it('wraps Shift+Tab from the first control to the last', async () => {
+      const { user } = setup();
+      expect(screen.getByLabelText('Description')).toHaveFocus();
+      await user.tab({ shift: true });
+      expect(screen.getByRole('button', { name: 'Add expense' })).toHaveFocus();
+    });
+
+    it('still moves through the controls normally inside the dialog', async () => {
+      const { user } = setup();
+      await user.tab();
+      expect(screen.getByLabelText('Description')).not.toHaveFocus();
+      expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
+    });
+
+    it('returns focus to the control that opened it when it closes', () => {
+      const opener = document.createElement('button');
+      opener.textContent = 'Open';
+      document.body.appendChild(opener);
+      opener.focus();
+
+      const { unmount } = render(
+        <AddExpenseDialog
+          members={members}
+          currentUserId="u-alice"
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+      expect(screen.getByLabelText('Description')).toHaveFocus();
+      unmount();
+
+      expect(opener).toHaveFocus();
+      opener.remove();
+    });
+  });
 });

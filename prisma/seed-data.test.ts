@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { Role, SettlementStatus, SplitType } from '@prisma/client';
 import { describe, expect, it } from 'vitest';
-import { seedData } from './seed-data';
+import { verifyPassword } from '../src/lib/auth/password';
+import { DEMO_PASSWORD, seedData } from './seed-data';
 
 const { users, groups, memberships, expenses, settlements } = seedData;
 
@@ -126,5 +127,11 @@ describe('seed data', () => {
   it('includes a platform admin and an archived group for admin testing', () => {
     expect(users.some((u) => u.role === Role.ADMIN)).toBe(true);
     expect(groups.some((g) => g.isArchived)).toBe(true);
+  });
+
+  it('lets every seed user sign in locally with the documented demo password', async () => {
+    for (const user of users) {
+      expect(await verifyPassword(DEMO_PASSWORD, user.passwordHash), user.email).toBe(true);
+    }
   });
 });

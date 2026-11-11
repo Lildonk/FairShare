@@ -103,14 +103,28 @@ Planned endpoint inventory from the blueprint (verify request/response schemas b
 | --- | --- | --- |
 | POST | /api/v1/auth/register | Public |
 | POST | /api/v1/auth/login | Public |
+| POST | /api/v1/auth/logout | Public (added in #3) |
+| GET | /api/v1/auth/me | Authenticated (added in #3) |
+| GET | /api/v1/auth/google, /api/v1/auth/google/callback | Public: Google sign-in redirects (added in #3) |
 | POST | /api/v1/simplify | Public stateless utility |
 | POST | /api/v1/split/calculate | Public stateless utility |
 | GET, POST | /api/v1/groups | Authenticated |
+| GET | /api/v1/groups/:id | Authenticated group member (added in #3) |
 | POST | /api/v1/groups/:id/expenses | Authenticated group member |
 | GET | /api/v1/groups/:id/settlements | Authenticated group member |
 | PATCH | /api/v1/settlements/:id | Authorized group member |
 | GET | /api/v1/admin/groups | Authorized admin |
 | PATCH | /api/v1/admin/groups/:id/archive | Authorized admin |
+
+### Authentication and authorization decisions
+
+Decided in #3 (2026-11-09):
+
+- **Session in an HttpOnly cookie, never in a response body.** The issue requires that tokens not appear in responses, and AGENTS.md prefers cookies over tokens readable by JavaScript. The blueprint's "return signed JWT token" is met by the signed JWT in the cookie. A Bearer-token flow for external API clients is not implemented; add it in #9 if it's needed.
+- **Accounts are never merged by email.** Password accounts don't verify their email, so someone could register a victim's address first. An existing account must be signed in before Google can be connected. Unverified Google emails are refused, and a Google account can belong to only one FairShare account.
+- **Status codes:** 401 when not signed in (or the session is invalid or expired), 403 for a non-admin, 404 for an unknown group or one you aren't a member of, 409 for a taken email. Login answers an unknown email and a wrong password the same way. A group you aren't in gets the same 404 as one that doesn't exist, so group IDs can't be probed (agreed in the #26 review).
+- **Admin checks read the role from the database**, not the token, so a demoted admin loses access at once. The page middleware uses the token's role only to choose a redirect.
+- **Not in scope for #3:** email verification, password reset, rate limiting of login attempts, and session revocation before the 7-day expiry.
 
 ## 4. UI/UX design intent and user flows
 
