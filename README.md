@@ -110,7 +110,7 @@ Authentication variables (such as `JWT_SECRET`) arrive with #3.
 - **Auth:** JWT + bcrypt, Google OAuth 2.0 / OIDC
 - **State:** Zustand + React Hooks
 - **Testing:** Vitest, React Testing Library, Playwright
-- **CI/CD:** GitHub Actions
+- **CI/CD:** GitHub Actions (see [CI/CD Pipeline](#cicd-pipeline))
 
 ## Development Workflow
 
@@ -119,6 +119,29 @@ Authentication variables (such as `JWT_SECRET`) arrive with #3.
 3. Use [Conventional Commits](https://www.conventionalcommits.org/): `feat(scope): message (#N)`
 4. Open a PR to `main` — requires partner review and CI passing
 5. No direct push to `main`
+
+## CI/CD Pipeline
+
+Every pull request (whatever its base branch) and every push to `main` runs two workflows.
+
+**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs four stages. Each stage starts only after the one before it passes:
+
+| Stage | What it checks |
+| ----- | -------------- |
+| 1. Install, Lint & Typecheck | `npm ci`, ESLint, `tsc --noEmit` |
+| 2. Unit Tests & Coverage | `npm run test:coverage`. Fails if anything in `src/lib/finance/` drops below 100% coverage (the blueprint target for the debt and tax/tip engines). The report is uploaded as the `coverage` artifact. |
+| 3. Migrations, Seed & Integration Tests | Applies the migrations to an empty PostgreSQL 17 database, checks that the schema matches them, seeds the database, and runs `npm run test:integration` |
+| 4. Production Build | `npm run build` |
+
+**Security** ([`.github/workflows/security.yml`](.github/workflows/security.yml)) also runs weekly on `main`:
+
+- **Dependency audit:** `npm audit --omit=dev --audit-level=high` on production dependencies. For now it only reports and does not fail CI, because `next@14.2.35` has advisories that only a major Next.js upgrade fixes (decision tracked in #24).
+- **Dependency review** (pull requests only): fails a PR that adds a dependency with a high or critical advisory.
+- **CodeQL:** static analysis of the TypeScript code with the `security-extended` queries. Results appear under the repository's **Security → Code scanning** tab.
+
+**Dependabot** ([`.github/dependabot.yml`](.github/dependabot.yml)) opens weekly update PRs for npm packages (minor and patch updates grouped) and for GitHub Actions. Major upgrades arrive as separate PRs, and the two partners decide on each one.
+
+**Deployment:** preview deployments for each PR and automatic production deployment from `main` (Vercel, with separate Neon databases for preview and production) are planned in #24 and not set up yet.
 
 ## License
 
