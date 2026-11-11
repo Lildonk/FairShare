@@ -218,6 +218,17 @@ describe('POST /api/v1/groups/:groupId/expenses', () => {
     expect(body.fields).toHaveProperty(['splits[1].userId']);
   });
 
+  it('does not report two people outside the group as one person listed twice', async () => {
+    const expense = taxi();
+    expense.splits[0].userId = dave.id;
+    expense.splits[1].userId = randomUUID();
+
+    const { status, body } = await post(trip.id, expense);
+
+    expect(status).toBe(400);
+    expect(Object.keys(body.fields).sort()).toEqual(['splits[0].userId', 'splits[1].userId']);
+  });
+
   it('answers 400 when a member appears twice', async () => {
     const expense = taxi();
     expense.splits[1].userId = alice.id;

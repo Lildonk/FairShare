@@ -144,6 +144,21 @@ describe('POST /api/v1/simplify', () => {
     expect(response.body.fields).toHaveProperty(['debts']);
   });
 
+  // The #41 review: 'a' and 'a ' were two different members.
+  it('trims member IDs, so "a" and "a " are the same member', async () => {
+    const { status, body } = await simplifyDebts({ debts: [{ fromMemberId: 'a', toMemberId: 'a ', amountCents: 100 }] });
+
+    expect(status).toBe(400);
+    expect(body.fields).toHaveProperty(['debts[0].toMemberId']);
+  });
+
+  it('returns member IDs trimmed', async () => {
+    const { status, body } = await simplifyDebts({ debts: [{ fromMemberId: ' alice ', toMemberId: 'bob', amountCents: 100 }] });
+
+    expect(status).toBe(200);
+    expect(body.transfers).toEqual([{ fromMemberId: 'alice', toMemberId: 'bob', amountCents: 100 }]);
+  });
+
   it('is stateless: a session cookie changes nothing, and a real user ID reveals nothing', async () => {
     const debts = [{ fromMemberId: alice.id, toMemberId: 'someone-else', amountCents: 500 }];
 
@@ -286,6 +301,14 @@ describe('POST /api/v1/split/calculate', () => {
     expect(response.status).toBe(400);
     expect(response.body.code).toBe('invalid_input');
     expect(response.body.fields).toHaveProperty([field]);
+  });
+
+  // The #41 review: invalid IDs all became '', which looked like the same member listed twice.
+  it('does not report two invalid member IDs as duplicates', async () => {
+    const { status, body } = await split({ splitType: 'EQUAL', totalCents: 100, participantIds: [1, 2], payerId: 'a' });
+
+    expect(status).toBe(400);
+    expect(Object.keys(body.fields).sort()).toEqual(['participantIds[0]', 'participantIds[1]']);
   });
 
   it(`answers 400 for more than ${MAX_SPLIT_MEMBERS} participants`, async () => {
