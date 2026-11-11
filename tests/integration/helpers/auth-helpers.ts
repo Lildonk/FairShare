@@ -73,6 +73,10 @@ export function sessionCookieFrom(response: Response) {
 }
 
 export async function cleanupTestData(): Promise<void> {
-  await prisma.group.deleteMany({ where: { id: { in: createdGroupIds } } });
-  await prisma.user.deleteMany({ where: { email: { endsWith: `.${runTag}@auth-test.test` } } });
+  const testEmail = { endsWith: `.${runTag}@auth-test.test` };
+  // Also groups created through the API, which createTestGroup never saw.
+  await prisma.group.deleteMany({
+    where: { OR: [{ id: { in: createdGroupIds } }, { members: { some: { user: { email: testEmail } } } }] },
+  });
+  await prisma.user.deleteMany({ where: { email: testEmail } });
 }

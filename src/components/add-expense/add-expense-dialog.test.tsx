@@ -304,6 +304,41 @@ describe('AddExpenseDialog', () => {
   });
 
   describe('focus containment (#7)', () => {
+    it('makes the rest of the page inert while open and restores it on close (#33 review)', () => {
+      const page = document.createElement('main');
+      const alreadyInert = document.createElement('aside');
+      alreadyInert.setAttribute('inert', '');
+      document.body.append(page, alreadyInert);
+
+      const { unmount } = render(
+        <AddExpenseDialog
+          members={members}
+          currentUserId="u-alice"
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+      expect(page).toHaveAttribute('inert');
+      expect(screen.getByRole('dialog').closest('[inert]')).toBeNull();
+      unmount();
+
+      expect(page).not.toHaveAttribute('inert');
+      expect(alreadyInert).toHaveAttribute('inert');
+      page.remove();
+      alreadyInert.remove();
+    });
+
+    it('keeps focus in the dialog when the backdrop is clicked, so Escape still closes it', async () => {
+      const { user, onCancel } = setup();
+      const backdrop = screen.getByRole('dialog').parentElement as HTMLElement;
+
+      await user.click(backdrop);
+      expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
+      await user.keyboard('{Escape}');
+
+      expect(onCancel).toHaveBeenCalledTimes(1);
+    });
+
     it('wraps Tab from the last control back to the first, so focus stays in the dialog', async () => {
       const { user } = setup();
       screen.getByRole('button', { name: 'Add expense' }).focus();

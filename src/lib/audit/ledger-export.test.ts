@@ -76,6 +76,12 @@ describe('ledgerToCsv', () => {
     expect(csvLines(ledgerToCsv([huge]))[1]).toContain(',90071992547409.91,9007199254740991,');
   });
 
+  it('formats a large amount that floating-point division would get wrong (#30 review)', () => {
+    // (9007199254740907 / 100).toFixed(2) gives "90071992547409.06", one cent short.
+    const large = { ...dinner, amountCents: 9007199254740907 };
+    expect(csvLines(ledgerToCsv([large]))[1]).toContain(',90071992547409.07,9007199254740907,');
+  });
+
   it('marks disputed entries in the status column', () => {
     expect(csvLines(ledgerToCsv([disputedTaxi]))[1].endsWith(',DISPUTED')).toBe(true);
   });
@@ -89,6 +95,14 @@ describe('ledgerToCsv', () => {
       'Taxi',
       'Settle up',
     ]);
+  });
+
+  it('breaks ties by ordinal ID order, not locale order (#30 review)', () => {
+    // Ordinal order puts "B" (66) before "a" (97); localeCompare would put "a-1" first.
+    const upper = { ...dinner, id: 'B-1', description: 'Upper' };
+    const lower = { ...dinner, id: 'a-1', description: 'Lower' };
+    const lines = csvLines(ledgerToCsv([lower, upper]));
+    expect(lines.slice(1, 3).map((line) => line.split(',')[2])).toEqual(['Upper', 'Lower']);
   });
 
   it('ends every row, including the last, with CRLF (RFC 4180)', () => {

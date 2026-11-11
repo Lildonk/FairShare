@@ -72,12 +72,26 @@ FairShare supports email/password and **Continue with Google**. Both create the 
 | `GET /api/v1/auth/me` | Signed in | `200` with your profile; `401` otherwise |
 | `GET /api/v1/auth/google`, `.../google/callback` | Anyone | Redirects to Google and back |
 | `GET /api/v1/groups` | Signed in | `200` with only your groups |
-| `GET /api/v1/groups/:groupId` | Group members | `200`; `404` if there is no such group or you aren't a member (the same answer for both) |
+| `POST /api/v1/groups` | Signed in | `201` with the new group; you are its only member |
+| `POST /api/v1/groups/join` | Signed in | `200`, joined by `inviteCode` (joining twice changes nothing); `404` unknown code; `409` archived |
+| `GET /api/v1/groups/:groupId` | Group members | `200` with members' names and the invite code; `404` if there is no such group or you aren't a member (the same answer for both) |
+| `GET`, `POST /api/v1/groups/:groupId/expenses` | Group members | List (oldest first), or add an expense; `400` if the shares don't add up or don't match the split type |
+| `PATCH`, `DELETE /api/v1/groups/:groupId/expenses/:expenseId` | Group members | Replace (send the whole expense) or delete |
+| `GET`, `POST /api/v1/groups/:groupId/settlements` | Group members | Balances, suggested transfers, and payments; or record a payment (payer or receiver only) |
+| `PATCH /api/v1/settlements/:settlementId` | The receiver | Confirm or dispute a pending payment; `409` if it is no longer pending |
 | `GET /api/v1/admin/groups` | `ADMIN` | `200` with every group; `403` for members |
+| `POST /api/v1/simplify` | Anyone | `200` with net balances and the transfers that settle them; `400` with field errors. Stateless |
+| `POST /api/v1/split/calculate` | Anyone | `200` with one allocation per member (EQUAL, EXACT, PERCENTAGE, or ITEMIZED); `400` with field errors. Stateless |
+| `GET /api/v1/openapi.json` | Anyone | The OpenAPI 3.0 document for every endpoint above |
+| `GET /api/docs` | Anyone | Swagger UI for that document |
 
 Errors are JSON: `{ "code": "...", "message": "..." }`, plus `fields` for invalid input. The `ADMIN` check reads the role from the database on every request, so removing someone's admin role takes effect at once. Pages under `/groups` and `/admin` send signed-out visitors to `/login`.
 
-In API code, use the guards in `src/lib/auth/current-user.ts` (`requireUser`, `requireGroupMember`, `requireAdmin`) and never read identity from the request body.
+Writes to an archived group answer `409 group_archived`, and request bodies over 512 KiB answer `413`.
+
+In API code, use the guards in `src/lib/auth/current-user.ts` (`requireUser`, `requireGroupMember`, `requireAdmin`) and never read identity from the request body. Any handler that changes a group's records calls `requireGroupMember(request, groupId, { write: true })`, so archived ledgers stay frozen.
+
+**API docs:** with the app running, open [localhost:3000/api/docs](http://localhost:3000/api/docs). The document lives in `src/lib/api/openapi.ts`; `tests/integration/api/openapi-docs.test.ts` fails if a route handler is added or removed without updating it, or if a private route doesn't call an auth guard.
 
 ### Setting up Google sign-in (optional locally)
 

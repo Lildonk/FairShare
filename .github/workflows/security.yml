@@ -11,8 +11,9 @@ on:
 permissions:
   contents: read
 
+# Same rule as ci.yml: cancel superseded PR runs, never a run for a commit on main.
 concurrency:
-  group: security-${{ github.event.pull_request.number || github.ref }}
+  group: security-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || github.sha }}
   cancel-in-progress: true
 
 jobs:

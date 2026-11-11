@@ -95,6 +95,30 @@ describe('TransactionGraph', () => {
     expect(screen.getByText('No transfers needed. Everyone is settled up.')).toBeInTheDocument();
   });
 
+  it('shortens long names with an ellipsis and keeps the full name as a tooltip (#31 review)', () => {
+    const longNames = [
+      { id: 'u-a', name: 'Alexandria Montgomery-Smith' },
+      { id: 'u-b', name: 'Alexandria Montgomery-Jones' },
+    ];
+    render(
+      <TransactionGraph
+        members={longNames}
+        transfers={[{ fromMemberId: 'u-a', toMemberId: 'u-b', amountCents: 100 }]}
+      />,
+    );
+
+    const payer = graph().querySelector('[data-column="payer"]');
+    const receiver = graph().querySelector('[data-column="receiver"]');
+    expect(payer?.querySelector('text')?.textContent).toBe('Alexandria Montg…');
+    expect(payer?.querySelector('title')?.textContent).toBe('Alexandria Montgomery-Smith');
+    expect(receiver?.querySelector('title')?.textContent).toBe('Alexandria Montgomery-Jones');
+  });
+
+  it('keeps short names as they are, without a tooltip', () => {
+    render(<TransactionGraph members={members} transfers={transfers} />);
+    expect(graph().querySelector('[data-column] title')).toBeNull();
+  });
+
   it('labels a transfer to someone who is no longer listed as an unknown member', () => {
     render(
       <TransactionGraph
