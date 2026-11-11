@@ -60,7 +60,7 @@ export function AdminPortal({ groups: initialGroups, disputes }: AdminPortalProp
 
   return (
     <div className="mt-8 space-y-10">
-      <section aria-labelledby="admin-groups-heading">
+      <section aria-labelledby="admin-groups-heading" className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 id="admin-groups-heading" className="text-lg font-semibold text-gray-900">
           Groups
         </h2>
@@ -147,7 +147,7 @@ export function AdminPortal({ groups: initialGroups, disputes }: AdminPortalProp
         </div>
       </section>
 
-      <section aria-labelledby="admin-disputes-heading">
+      <section aria-labelledby="admin-disputes-heading" className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 id="admin-disputes-heading" className="text-lg font-semibold text-gray-900">
           Disputed expenses
         </h2>
