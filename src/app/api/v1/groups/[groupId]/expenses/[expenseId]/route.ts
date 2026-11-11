@@ -8,7 +8,8 @@ import { HttpError, errorResponse, readJson } from '@/lib/http/responses';
 
 export const dynamic = 'force-dynamic';
 
-type Context = { params: { groupId: string; expenseId: string } };
+// Next.js 15 passes route params as a promise.
+type Context = { params: Promise<{ groupId: string; expenseId: string }> };
 
 /** Members may change any expense in their group; an expense in another group is not found. */
 async function findExpense(groupId: string, expenseId: string) {
@@ -23,8 +24,8 @@ async function findExpense(groupId: string, expenseId: string) {
  */
 export async function PATCH(request: NextRequest, { params }: Context) {
   try {
-    const { group } = await requireGroupMember(request, params.groupId, { write: true });
-    const current = await findExpense(group.id, params.expenseId);
+    const { group } = await requireGroupMember(request, (await params).groupId, { write: true });
+    const current = await findExpense(group.id, (await params).expenseId);
     const input = validateExpenseInput(await readJson(request), await groupMemberIds(group.id));
     if (!input.ok) throw new HttpError(400, 'invalid_input', 'Check the highlighted fields.', input.errors);
 
@@ -46,8 +47,8 @@ export async function PATCH(request: NextRequest, { params }: Context) {
 /** DELETE /api/v1/groups/:groupId/expenses/:expenseId: deletes the expense and its splits. */
 export async function DELETE(request: NextRequest, { params }: Context) {
   try {
-    const { group } = await requireGroupMember(request, params.groupId, { write: true });
-    const current = await findExpense(group.id, params.expenseId);
+    const { group } = await requireGroupMember(request, (await params).groupId, { write: true });
+    const current = await findExpense(group.id, (await params).expenseId);
     await prisma.$transaction((tx) => tx.expense.delete({ where: { id: current.id } }));
     return new NextResponse(null, { status: 204 });
   } catch (error) {
