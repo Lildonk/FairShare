@@ -229,6 +229,61 @@ describe('SettlementBoard', () => {
       );
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
+
+    it('counts a recorded payment once when the page passes refreshed data that includes it (#33 review)', async () => {
+      const bobPaid: SettlementRecord = {
+        fromUserId: 'u-bob',
+        toUserId: 'u-alice',
+        amountCents: 34500,
+        status: 'CONFIRMED',
+      };
+      const onRecordPayment = vi.fn<(payment: PaymentRequest) => Promise<SettlementRecord>>();
+      onRecordPayment.mockResolvedValue(bobPaid);
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <SettlementBoard state={ready()} onRecordPayment={onRecordPayment} />,
+      );
+
+      await user.click(screen.getByRole('button', bobPaysAlice));
+      await screen.findByText('Recorded: Bob paid Alice $345.00.');
+      // The page refetches (for example after router.refresh()) without remounting the board.
+      rerender(
+        <SettlementBoard state={ready({ settlements: [bobPaid] })} onRecordPayment={onRecordPayment} />,
+      );
+
+      expect(chipTexts()).toEqual([
+        'Alice: gets back $229.00',
+        'Bob: settled up',
+        'Charlie: gets back $47.00',
+        'Dana: owes $276.00',
+      ]);
+    });
+
+    it('counts a payment once when refreshed data arrives before the server answers', async () => {
+      const bobPaid: SettlementRecord = {
+        fromUserId: 'u-bob',
+        toUserId: 'u-alice',
+        amountCents: 34500,
+        status: 'CONFIRMED',
+      };
+      const saving = deferred<SettlementRecord>();
+      const onRecordPayment = vi.fn<(payment: PaymentRequest) => Promise<SettlementRecord>>();
+      onRecordPayment.mockReturnValue(saving.promise);
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <SettlementBoard state={ready()} onRecordPayment={onRecordPayment} />,
+      );
+
+      await user.click(screen.getByRole('button', bobPaysAlice));
+      rerender(
+        <SettlementBoard state={ready({ settlements: [bobPaid] })} onRecordPayment={onRecordPayment} />,
+      );
+      saving.resolve(bobPaid);
+      await screen.findByText('Recorded: Bob paid Alice $345.00.');
+
+      expect(chipTexts()).toContain('Alice: gets back $229.00');
+      expect(chipTexts()).toContain('Bob: settled up');
+    });
   });
 
   describe('loading, empty, and error states', () => {
