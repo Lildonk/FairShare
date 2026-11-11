@@ -8,6 +8,7 @@ import {
   useState,
   type FormEvent,
   type KeyboardEvent,
+  type MouseEvent,
 } from 'react';
 import { formatCents } from '@/lib/finance/money-input';
 import {
@@ -53,6 +54,7 @@ export function AddExpenseDialog({
   onCancel,
 }: AddExpenseDialogProps) {
   const id = useId();
+  const overlayRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLInputElement>(null);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState<ExpenseFormState>(() => ({
@@ -69,8 +71,11 @@ export function AddExpenseDialog({
   useEffect(() => {
     // Remember the control that opened the dialog, and give focus back to it on close.
     const opener = document.activeElement;
+    const restorePage = makeRestOfPageInert(overlayRef.current);
     descriptionRef.current?.focus();
     return () => {
+      // Restore the page first: an element inside an inert subtree can't take focus.
+      restorePage();
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
     };
   }, []);
@@ -136,12 +141,21 @@ export function AddExpenseDialog({
     }
   };
 
+  // A click on the backdrop would move focus to <body>, outside the dialog's key handler.
+  const keepFocusOnBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) event.preventDefault();
+  };
+
   const titleId = `${id}-title`;
   const modeLabelId = `${id}-mode`;
   const showErrors = submitted && draft.errors.length > 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      ref={overlayRef}
+      onMouseDown={keepFocusOnBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -336,4 +350,23 @@ export function AddExpenseDialog({
       </div>
     </div>
   );
+}
+
+/**
+ * Marks everything outside `element` as `inert` (not focusable, clickable, or read by screen
+ * readers), so the page behind a modal is unreachable. Returns a function that undoes only the
+ * changes made here, leaving elements that were already inert as they were.
+ */
+function makeRestOfPageInert(element: HTMLElement | null): () => void {
+  const changed: Element[] = [];
+  for (let node = element; node?.parentElement; node = node.parentElement) {
+    for (const sibling of Array.from(node.parentElement.children)) {
+      if (sibling !== node && !sibling.hasAttribute('inert')) {
+        sibling.setAttribute('inert', '');
+        changed.push(sibling);
+      }
+    }
+    if (node.parentElement === document.body) break;
+  }
+  return () => changed.forEach((el) => el.removeAttribute('inert'));
 }
