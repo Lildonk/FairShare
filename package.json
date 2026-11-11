@@ -18,7 +18,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3",
+    "@prisma/client": "7.10.1",
     "bcryptjs": "3.0.3",
     "jose": "6.2.15",
     "lucide-react": "^1.69.0",
