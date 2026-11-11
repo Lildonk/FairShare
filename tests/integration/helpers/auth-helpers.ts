@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { NextRequest } from 'next/server';
-import type { Group, Role, User } from '@prisma/client';
+import type { Group, Prisma, Role, User } from '@prisma/client';
 import { hashPassword } from '@/lib/auth/password';
 import { SESSION_COOKIE, createSessionToken } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -72,7 +72,25 @@ export function sessionCookieFrom(response: Response) {
   return setCookie(response, SESSION_COOKIE);
 }
 
+/**
+ * Deletes audit events, which the database allows only in a transaction that turns on the
+ * maintenance switch (#8). Test cleanup only: application code never sets it.
+ */
+export async function deleteAuditEventsAsMaintenance(where: Prisma.AuditEventWhereInput): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SET LOCAL fairshare.audit_maintenance = 'on'`;
+    await tx.auditEvent.deleteMany({ where });
+  });
+}
+
 export async function cleanupTestData(): Promise<void> {
+  // Audit events restrict deleting their group and actor, so they go first.
+  await deleteAuditEventsAsMaintenance({
+    OR: [
+      { groupId: { in: createdGroupIds } },
+      { actor: { email: { endsWith: `.${runTag}@auth-test.test` } } },
+    ],
+  });
   await prisma.group.deleteMany({ where: { id: { in: createdGroupIds } } });
   await prisma.user.deleteMany({ where: { email: { endsWith: `.${runTag}@auth-test.test` } } });
 }
