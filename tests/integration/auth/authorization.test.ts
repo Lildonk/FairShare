@@ -71,6 +71,8 @@ describe('GET /api/v1/groups/[groupId]', () => {
         description: null,
         currency: 'USD',
         isArchived: false,
+        // Members see the invite code so they can invite others (#9).
+        inviteCode: groupA.inviteCode,
         members: [{ id: alice.id, name: 'Alice' }],
       },
     });

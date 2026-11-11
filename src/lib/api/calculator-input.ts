@@ -6,6 +6,17 @@
  */
 import type { ExactShare, PercentageShare } from '@/lib/finance/split-calculation';
 import type { ReceiptItem } from '@/lib/finance/itemized-split';
+import {
+  bodyFields,
+  checkDistinct,
+  isRecord,
+  nonNegativeCents,
+  positiveCents,
+  result,
+  type Errors,
+  type Fields,
+  type InputResult,
+} from './input-helpers';
 
 /** Size limits, because anyone can call these endpoints. */
 export const MAX_DEBTS = 1000;
@@ -15,8 +26,6 @@ export const MAX_MEMBER_ID_LENGTH = 100;
 export const MAX_ITEM_DESCRIPTION_LENGTH = 200;
 
 export const SPLIT_TYPES = ['EQUAL', 'EXACT', 'PERCENTAGE', 'ITEMIZED'] as const;
-
-export type InputResult<T> = { ok: true; value: T } | { ok: false; errors: Record<string, string> };
 
 /** `fromMemberId` owes `toMemberId` this many cents. */
 export interface DebtInput {
@@ -38,31 +47,15 @@ export type SplitRequest =
       tipCents: number;
     };
 
-type Errors = Record<string, string>;
-type Fields = Record<string, unknown>;
-
-const isRecord = (value: unknown): value is Fields =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-function positiveCents(value: unknown, field: string, errors: Errors): number {
-  if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value;
-  errors[field] = 'Enter a whole number of cents greater than 0.';
-  return 0;
-}
-
-function nonNegativeCents(value: unknown, field: string, errors: Errors): number {
-  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return value;
-  errors[field] = 'Enter a whole number of cents, 0 or more.';
-  return 0;
-}
-
 /** An optional extra such as tax: missing means 0. */
 function optionalCents(value: unknown, field: string, errors: Errors): number {
   return value === undefined ? 0 : nonNegativeCents(value, field, errors);
 }
 
+/** A member ID, trimmed, so "a" and "a " are the same member. */
 function memberId(value: unknown, field: string, errors: Errors): string {
-  if (typeof value === 'string' && value.trim() !== '' && value.length <= MAX_MEMBER_ID_LENGTH) return value;
+  const id = typeof value === 'string' ? value.trim() : '';
+  if (id !== '' && id.length <= MAX_MEMBER_ID_LENGTH) return id;
   errors[field] = `Enter a member ID of 1 to ${MAX_MEMBER_ID_LENGTH} characters.`;
   return '';
 }
@@ -80,17 +73,13 @@ function record(value: unknown, field: string, errors: Errors): Fields {
 }
 
 function distinctMemberIds(ids: string[], field: string, errors: Errors): void {
-  if (new Set(ids).size !== ids.length) errors[field] ??= 'List each member only once.';
-}
-
-function result<T>(value: T, errors: Errors): InputResult<T> {
-  return Object.keys(errors).length === 0 ? { ok: true, value } : { ok: false, errors };
+  checkDistinct(ids, field, errors, 'List each member only once.');
 }
 
 /** Body of `POST /api/v1/simplify`: `{ debts: [{ fromMemberId, toMemberId, amountCents }] }`. */
 export function validateSimplifyRequest(body: unknown): InputResult<{ debts: DebtInput[] }> {
   const errors: Errors = {};
-  const fields = record(body, 'body', errors);
+  const fields = bodyFields(body, errors);
   const rawDebts = list(fields.debts, 'debts', errors, 0, MAX_DEBTS);
 
   let totalCents = 0;
@@ -114,7 +103,7 @@ export function validateSimplifyRequest(body: unknown): InputResult<{ debts: Deb
 /** Body of `POST /api/v1/split/calculate`, by `splitType`. */
 export function validateSplitRequest(body: unknown): InputResult<SplitRequest> {
   const errors: Errors = {};
-  const fields = record(body, 'body', errors);
+  const fields = bodyFields(body, errors);
   const splitType = SPLIT_TYPES.find((type) => type === fields.splitType);
   if (!splitType) {
     errors.splitType = `Choose one of ${SPLIT_TYPES.join(', ')}.`;
