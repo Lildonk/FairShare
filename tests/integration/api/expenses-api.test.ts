@@ -22,7 +22,7 @@ async function call<P>(
   method: string,
   url: string,
   params: P,
-  user?: User,
+  user?: User | null,
   body?: unknown,
 ) {
   const cookie = user ? await sessionCookie(user) : undefined;
@@ -33,12 +33,12 @@ async function call<P>(
 
 const url = (groupId: string, expenseId?: string) =>
   `/api/v1/groups/${groupId}/expenses${expenseId ? `/${expenseId}` : ''}`;
-const post = (groupId: string, body: unknown, user: User | undefined = alice) =>
+const post = (groupId: string, body: unknown, user: User | null = alice) =>
   call(createExpense, 'POST', url(groupId), { groupId }, user, body);
-const list = (groupId: string, user: User | undefined = alice) => call(listExpenses, 'GET', url(groupId), { groupId }, user);
-const patch = (groupId: string, expenseId: string, body: unknown, user: User | undefined = alice) =>
+const list = (groupId: string, user: User | null = alice) => call(listExpenses, 'GET', url(groupId), { groupId }, user);
+const patch = (groupId: string, expenseId: string, body: unknown, user: User | null = alice) =>
   call(updateExpense, 'PATCH', url(groupId, expenseId), { groupId, expenseId }, user, body);
-const remove = (groupId: string, expenseId: string, user: User | undefined = alice) =>
+const remove = (groupId: string, expenseId: string, user: User | null = alice) =>
   call(deleteExpense, 'DELETE', url(groupId, expenseId), { groupId, expenseId }, user);
 
 const byUser = <T extends { userId: string }>(rows: T[]) =>
@@ -291,7 +291,7 @@ describe('POST /api/v1/groups/:groupId/expenses', () => {
   });
 
   it('answers 401 without a session', async () => {
-    const { status } = await post(trip.id, taxi(), undefined);
+    const { status } = await post(trip.id, taxi(), null);
 
     expect(status).toBe(401);
   });
@@ -344,7 +344,7 @@ describe('GET /api/v1/groups/:groupId/expenses', () => {
   });
 
   it('answers 401 without a session', async () => {
-    expect((await list(trip.id, undefined)).status).toBe(401);
+    expect((await list(trip.id, null)).status).toBe(401);
   });
 });
 
@@ -400,7 +400,7 @@ describe('PATCH /api/v1/groups/:groupId/expenses/:expenseId', () => {
   });
 
   it('answers 401 without a session', async () => {
-    expect((await patch(trip.id, randomUUID(), taxi(), undefined)).status).toBe(401);
+    expect((await patch(trip.id, randomUUID(), taxi(), null)).status).toBe(401);
   });
 });
 

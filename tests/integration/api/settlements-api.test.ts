@@ -19,7 +19,7 @@ async function call<P>(
   method: string,
   url: string,
   params: P,
-  user?: User,
+  user?: User | null,
   body?: unknown,
 ) {
   const cookie = user ? await sessionCookie(user) : undefined;
@@ -28,11 +28,11 @@ async function call<P>(
   return { status: response.status, body: text ? JSON.parse(text) : null };
 }
 
-const board = (groupId: string, user: User | undefined = alice) =>
+const board = (groupId: string, user: User | null = alice) =>
   call(getSettlements, 'GET', `/api/v1/groups/${groupId}/settlements`, { groupId }, user);
-const record = (groupId: string, body: unknown, user: User | undefined) =>
+const record = (groupId: string, body: unknown, user: User | null) =>
   call(recordPayment, 'POST', `/api/v1/groups/${groupId}/settlements`, { groupId }, user, body);
-const setStatus = (settlementId: string, body: unknown, user: User | undefined) =>
+const setStatus = (settlementId: string, body: unknown, user: User | null) =>
   call(updateSettlement, 'PATCH', `/api/v1/settlements/${settlementId}`, { settlementId }, user, body);
 
 const ordinal = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
@@ -119,7 +119,7 @@ describe('GET /api/v1/groups/:groupId/settlements', () => {
   });
 
   it('answers 401 without a session', async () => {
-    expect((await board(archived.id, undefined)).status).toBe(401);
+    expect((await board(archived.id, null)).status).toBe(401);
   });
 });
 
@@ -207,7 +207,7 @@ describe('POST /api/v1/groups/:groupId/settlements', () => {
   it('answers 401 without a session', async () => {
     const group = await flat();
 
-    expect((await record(group.id, bobPaysAlice(), undefined)).status).toBe(401);
+    expect((await record(group.id, bobPaysAlice(), null)).status).toBe(401);
   });
 });
 
@@ -286,6 +286,6 @@ describe('PATCH /api/v1/settlements/:settlementId', () => {
   it('answers 401 without a session', async () => {
     const { payment } = await pendingPayment();
 
-    expect((await setStatus(payment.id, { status: 'CONFIRMED' }, undefined)).status).toBe(401);
+    expect((await setStatus(payment.id, { status: 'CONFIRMED' }, null)).status).toBe(401);
   });
 });
