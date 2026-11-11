@@ -55,4 +55,4 @@
 
 **Zichen Tian:** Used Claude Code to implement #4–#7 end to end with the RED stop point from AGENTS.md. The separate test commits made the reviews faster, because Zheqi could check each RED commit on its own.
 
-**Zheqi Lv:** _(to be added by Zheqi)_
+**Zheqi Lv:** I used Claude Code for #1–#3 with the same RED stop point, and committing the failing tests on their own made each review quicker to check. Zichen's reviews caught two problems my tests had missed: a way around the integer-amount guard (#23) and an open redirect after sign-in (#26). Both got failing tests before the fix, and the #26 review also led us to return 404 for non-members. What I'd change: the scaffold (#1) only landed on 11-05, after the planned sprint end, and everything else waited on it. In Sprint 2 I'll keep PRs small and review requested ones within a day.
