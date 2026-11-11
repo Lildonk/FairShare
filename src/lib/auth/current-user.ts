@@ -1,7 +1,7 @@
 /**
  * Server-side authentication and authorization guards. Every private route handler calls one of
- * the `require*` functions; each throws an HttpError (401, 403, or 404) that `errorResponse` turns
- * into a JSON response.
+ * the `require*` functions; each throws an HttpError (401, 403, 404, or 409) that `errorResponse`
+ * turns into a JSON response.
  */
 import type { Group, User } from '@prisma/client';
 import { cookies } from 'next/headers';
@@ -38,9 +38,21 @@ export async function requireAdmin(request: NextRequest): Promise<User> {
   return user;
 }
 
+/** An archived group's ledger is frozen: every write answers 409. */
+export function assertGroupWritable(group: Pick<Group, 'isArchived'>): void {
+  if (group.isArchived) {
+    throw new HttpError(409, 'group_archived', 'This group is archived, so its expenses and payments can’t be changed.');
+  }
+}
+
+/**
+ * The signed-in user and a group they belong to. Pass `{ write: true }` from any handler that
+ * changes the group's records, so archived groups refuse the change.
+ */
 export async function requireGroupMember(
   request: NextRequest,
   groupId: string,
+  options: { write?: boolean } = {},
 ): Promise<{ user: User; group: Group }> {
   const user = await requireUser(request);
   // One lookup covers both cases: a group you aren't in gets the same 404 as one that doesn't
@@ -50,5 +62,6 @@ export async function requireGroupMember(
     include: { group: true },
   });
   if (!membership) throw new HttpError(404, 'not_found', 'Group not found.');
+  if (options.write) assertGroupWritable(membership.group);
   return { user, group: membership.group };
 }

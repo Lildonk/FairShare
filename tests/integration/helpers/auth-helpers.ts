@@ -84,13 +84,11 @@ export async function deleteAuditEventsAsMaintenance(where: Prisma.AuditEventWhe
 }
 
 export async function cleanupTestData(): Promise<void> {
+  const testEmail = { endsWith: `.${runTag}@auth-test.test` };
+  // Also groups created through the API, which createTestGroup never saw.
+  const testGroups = { OR: [{ id: { in: createdGroupIds } }, { members: { some: { user: { email: testEmail } } } }] };
   // Audit events restrict deleting their group and actor, so they go first.
-  await deleteAuditEventsAsMaintenance({
-    OR: [
-      { groupId: { in: createdGroupIds } },
-      { actor: { email: { endsWith: `.${runTag}@auth-test.test` } } },
-    ],
-  });
-  await prisma.group.deleteMany({ where: { id: { in: createdGroupIds } } });
-  await prisma.user.deleteMany({ where: { email: { endsWith: `.${runTag}@auth-test.test` } } });
+  await deleteAuditEventsAsMaintenance({ OR: [{ group: testGroups }, { actor: { email: testEmail } }] });
+  await prisma.group.deleteMany({ where: testGroups });
+  await prisma.user.deleteMany({ where: { email: testEmail } });
 }

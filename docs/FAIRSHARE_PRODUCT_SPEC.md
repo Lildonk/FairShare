@@ -133,6 +133,23 @@ Decided in #3 (2026-11-09):
 - **Admin checks read the role from the database**, not the token, so a demoted admin loses access at once. The page middleware uses the token's role only to choose a redirect.
 - **Not in scope for #3:** email verification, password reset, rate limiting of login attempts, and session revocation before the 7-day expiry.
 
+### API decisions
+
+Agreed in the #41 review (2026-11-10):
+
+- **Calculator request shapes.** The blueprint names the public endpoints but not their bodies. `POST /api/v1/simplify` takes raw debts (`fromMemberId` owes `toMemberId` `amountCents`) and returns net balances plus transfers. `POST /api/v1/split/calculate` takes a `splitType` and that mode's inputs (percentages as basis points), covering all four split modes rather than only ITEMIZED. Member IDs are free-form labels, so the endpoints never touch real accounts.
+- **Limits on public input:** at most 1000 debts, 100 members per split, and 200 receipt items, with member IDs up to 100 characters.
+- **Swagger UI from a CDN, not npm.** `/api/docs` loads `swagger-ui-dist` 5.34.0 from jsDelivr with integrity hashes checked against the npm tarball, under a Content-Security-Policy that allows only those files. This adds no dependency, and keeps working through the planned React 19 upgrade.
+- **Request bodies are capped at 512 KiB** (413 above it) for every route, checked while reading so an oversized body is never buffered whole. Calculator member IDs are trimmed. Both came from the #41 review.
+
+Proposed in #9 part 2 (2026-11-10), for partner review:
+
+- **Settlement confirmation authority** (an open question below). Only the payer or the receiver may record a payment. When the receiver records it, it is confirmed at once; when the payer does, it stays PENDING until the receiver confirms or disputes it, once. PENDING and DISPUTED payments don't count toward balances. Resolving disputes is left to the admin portal (#11).
+- **The server recomputes shares.** The add-expense dialog sends its computed shares; the API rejects them unless they add up to the amount exactly and, for EQUAL and PERCENTAGE, equal what the same finance engines compute. EXACT and ITEMIZED shares are taken as given. No item breakdown is stored for ITEMIZED.
+- **Every member may change any expense** in their group (US-5: no per-group roles). PATCH replaces the whole expense and its splits; a missing `category` keeps the current one. DELETE removes the expense; the #8 audit event keeps its history.
+- **Archived groups are read-only:** expense, payment, and join requests answer 409 `group_archived`, while reads still work.
+- **Invite codes** are the group's existing UUID, shown to members in the group detail. They don't expire yet (invite-token expiration stays an open question).
+
 ## 4. UI/UX design intent and user flows
 
 The blueprint names features and behaviors but contained no screen mockups. Four new [FairShare UI mockups](mockups/README.md) were created for HW3: [Authentication](mockups/01-auth.svg), [Group Dashboard](mockups/02-group-dashboard.svg), [Add Expense](mockups/03-add-expense.svg), and [Settlement](mockups/04-settlements.svg). These are proposed designs derived from the blueprint, **not** screenshots from an existing Claude/Figma prototype. The login screen includes email/password and the newly selected Google sign-in option. Confirm them together before treating them as approved mockups.
@@ -166,7 +183,7 @@ Use mobile-first layouts, keyboard-accessible controls, visible focus, semantic 
 3. Actual approved screen mockups and issue acceptance criteria refine behavior, when available.
 4. Any contradiction or missing detail should be surfaced to the two partners, **not silently invented**.
 
-Open questions: partner approval of the proposed UI mockups and whether an earlier Claude/Figma prototype exists; invite-token expiration; settlement confirmation authority. Resolve and update this spec and `AGENTS.md` as decisions are made. Resolved: admin scope (US-6), audit-event persistence (US-4), and the [data model decisions](#data-model-decisions) in #2; equal split when the payer is excluded (US-2) in #5.
+Open questions: partner approval of the proposed UI mockups and whether an earlier Claude/Figma prototype exists; invite-token expiration; settlement confirmation authority (proposed in [API decisions](#api-decisions), pending partner review). Resolve and update this spec and `AGENTS.md` as decisions are made. Resolved: admin scope (US-6), audit-event persistence (US-4), and the [data model decisions](#data-model-decisions) in #2; equal split when the payer is excluded (US-2) in #5.
 
 ### Course references
 

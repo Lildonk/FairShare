@@ -142,13 +142,19 @@ describe('ActivityLedger', () => {
       expect(screen.getByText('2 entries need review.')).toBeInTheDocument();
     });
 
-    it('disables the toggle while its request is in flight', async () => {
+    it('marks the toggle unavailable while its request is in flight, without dropping focus (#32 review)', async () => {
       const { user, onToggleDispute } = setup();
       onToggleDispute.mockReturnValue(deferred().promise);
 
       await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
+      const toggle = screen.getByRole('button', { name: 'Clear dispute: Dinner' });
 
-      expect(screen.getByRole('button', { name: 'Clear dispute: Dinner' })).toBeDisabled();
+      // A `disabled` button would push focus to <body>; aria-disabled keeps it on the toggle.
+      expect(toggle).toHaveAttribute('aria-disabled', 'true');
+      expect(toggle).toBeEnabled();
+      expect(toggle).toHaveFocus();
+      await user.click(toggle);
+      expect(onToggleDispute).toHaveBeenCalledTimes(1);
     });
 
     it('announces the change once the server saves it', async () => {
@@ -159,7 +165,10 @@ describe('ActivityLedger', () => {
 
       expect(onToggleDispute).toHaveBeenCalledWith('e-2', false);
       expect(await screen.findByRole('status')).toHaveTextContent('Dispute cleared on Taxi.');
-      expect(screen.getByRole('button', { name: 'Flag for review: Taxi' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Flag for review: Taxi' })).not.toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
     });
 
     it('announces a new flag once the server saves it', async () => {
@@ -180,7 +189,10 @@ describe('ActivityLedger', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'Couldn’t update the dispute on Dinner. Please try again.',
       );
-      expect(screen.getByRole('button', { name: 'Flag for review: Dinner' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Flag for review: Dinner' })).not.toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
       expect(screen.getByText('1 entry needs review.')).toBeInTheDocument();
     });
 
@@ -195,6 +207,46 @@ describe('ActivityLedger', () => {
 
       expect(await screen.findByRole('status')).toHaveTextContent('Dinner flagged for review.');
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('removes the old error when a new attempt starts, so a repeated failure is announced again (#32 review)', async () => {
+      const { user, onToggleDispute } = setup();
+      onToggleDispute.mockRejectedValueOnce(new Error('Network down'));
+      const retry = deferred();
+      onToggleDispute.mockReturnValueOnce(retry.promise);
+
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
+      await screen.findByRole('alert');
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      retry.reject(new Error('Network down'));
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Couldn’t update the dispute on Dinner. Please try again.',
+      );
+    });
+
+    it('shows the status from refreshed entries instead of an earlier local change (#32 review)', async () => {
+      const onToggleDispute = vi.fn<(entryId: string, disputed: boolean) => Promise<void>>();
+      onToggleDispute.mockResolvedValue();
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <ActivityLedger state={ready()} onToggleDispute={onToggleDispute} exportLinks={exportLinks} />,
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
+      await screen.findByText('Dinner flagged for review.');
+      // Someone else cleared the dispute; the page refetches without remounting the ledger.
+      rerender(
+        <ActivityLedger
+          state={ready([{ ...dinner, status: 'ACTIVE' }, taxi, bobPays])}
+          onToggleDispute={onToggleDispute}
+          exportLinks={exportLinks}
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Flag for review: Dinner' })).toBeInTheDocument();
+      expect(screen.getByText('1 entry needs review.')).toBeInTheDocument();
     });
   });
 
