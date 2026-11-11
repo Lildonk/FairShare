@@ -28,13 +28,13 @@ jobs:
         with:
           node-version: 20
 
-      # Audits the dependencies that ship to users (no devDependencies).
-      # TEMPORARY: continue-on-error stays until the Next.js upgrade decision in #24,
-      # because next@14.2.35 has advisories that only a major upgrade fixes.
-      # Remove continue-on-error in the upgrade PR so new high or critical advisories fail CI.
-      - name: npm audit (high and critical)
-        continue-on-error: true
-        run: npm audit --omit=dev --audit-level=high
+      # Audits the dependencies that ship to users (no devDependencies) and fails on critical
+      # advisories. High ones that we can't fix yet are tracked in #24:
+      # - postcss bundled inside next@15.5.29 (fixed only in Next 16)
+      # - deepmerge-ts via the Prisma CLI, a peer of @prisma/client (fixed only in Prisma 7)
+      # Go back to --audit-level=high once those upgrades land.
+      - name: npm audit (critical)
+        run: npm audit --omit=dev --audit-level=critical
 
   dependency-review:
     name: Dependency Review

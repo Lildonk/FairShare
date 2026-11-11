@@ -15,7 +15,7 @@ let groupA: Group;
 let groupB: Group;
 
 function groupRequest(groupId: string, cookie?: string) {
-  return getGroup(jsonRequest(`/api/v1/groups/${groupId}`, { cookie }), { params: { groupId } });
+  return getGroup(jsonRequest(`/api/v1/groups/${groupId}`, { cookie }), { params: Promise.resolve({ groupId }) });
 }
 
 beforeAll(async () => {

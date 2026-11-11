@@ -6,9 +6,10 @@ import { errorResponse } from '@/lib/http/responses';
 export const dynamic = 'force-dynamic';
 
 /** GET /api/v1/groups/:groupId: a group and its members' names, for members only. */
-export async function GET(request: NextRequest, { params }: { params: { groupId: string } }) {
+// Next.js 15 passes route params as a promise.
+export async function GET(request: NextRequest, { params }: { params: Promise<{ groupId: string }> }) {
   try {
-    const { group } = await requireGroupMember(request, params.groupId);
+    const { group } = await requireGroupMember(request, (await params).groupId);
     const memberships = await prisma.groupMember.findMany({
       where: { groupId: group.id },
       orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],

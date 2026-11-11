@@ -21,8 +21,9 @@ export function getSessionUser(request: NextRequest): Promise<User | null> {
 }
 
 /** The signed-in user for a server component, or null. */
-export function getSignedInUser(): Promise<User | null> {
-  return userForToken(cookies().get(SESSION_COOKIE)?.value);
+export async function getSignedInUser(): Promise<User | null> {
+  // Next.js 15: cookies() is async.
+  return userForToken((await cookies()).get(SESSION_COOKIE)?.value);
 }
 
 export async function requireUser(request: NextRequest): Promise<User> {
