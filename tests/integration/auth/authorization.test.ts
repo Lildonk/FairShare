@@ -77,11 +77,14 @@ describe('GET /api/v1/groups/[groupId]', () => {
     expect(text).not.toMatch(/@auth-test\.test|passwordHash|googleSub/);
   });
 
-  it('returns 403 to a signed-in user who is not a member', async () => {
-    const response = await groupRequest(groupA.id, await sessionCookie(bob));
+  it('gives a non-member the same 404 as a group that does not exist', async () => {
+    const cookie = await sessionCookie(bob);
+    const notTheirs = await groupRequest(groupA.id, cookie);
+    const unknown = await groupRequest(randomUUID(), cookie);
 
-    expect(response.status).toBe(403);
-    expect((await response.json()).code).toBe('forbidden');
+    // Identical answers, so a signed-in user can't tell a real group ID from a made-up one.
+    expect(notTheirs.status).toBe(404);
+    expect(await notTheirs.json()).toEqual(await unknown.json());
   });
 
   it('returns 404 for a group that does not exist', async () => {
