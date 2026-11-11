@@ -122,7 +122,7 @@ Decided in #3 (2026-11-09):
 
 - **Session in an HttpOnly cookie, never in a response body.** The issue requires that tokens not appear in responses, and AGENTS.md prefers cookies over tokens readable by JavaScript. The blueprint's "return signed JWT token" is met by the signed JWT in the cookie. A Bearer-token flow for external API clients is not implemented; add it in #9 if it's needed.
 - **Accounts are never merged by email.** Password accounts don't verify their email, so someone could register a victim's address first. An existing account must be signed in before Google can be connected. Unverified Google emails are refused, and a Google account can belong to only one FairShare account.
-- **Status codes:** 401 when not signed in (or the session is invalid or expired), 403 for a non-member or non-admin, 404 for an unknown group, 409 for a taken email. Login answers an unknown email and a wrong password the same way.
+- **Status codes:** 401 when not signed in (or the session is invalid or expired), 403 for a non-admin, 404 for an unknown group or one you aren't a member of, 409 for a taken email. Login answers an unknown email and a wrong password the same way. A group you aren't in gets the same 404 as one that doesn't exist, so group IDs can't be probed (agreed in the #26 review).
 - **Admin checks read the role from the database**, not the token, so a demoted admin loses access at once. The page middleware uses the token's role only to choose a redirect.
 - **Not in scope for #3:** email verification, password reset, rate limiting of login attempts, and session revocation before the 7-day expiry.
 

@@ -72,7 +72,7 @@ FairShare supports email/password and **Continue with Google**. Both create the 
 | `GET /api/v1/auth/me` | Signed in | `200` with your profile; `401` otherwise |
 | `GET /api/v1/auth/google`, `.../google/callback` | Anyone | Redirects to Google and back |
 | `GET /api/v1/groups` | Signed in | `200` with only your groups |
-| `GET /api/v1/groups/:groupId` | Group members | `200`; `403` if you aren't a member; `404` if there is no such group |
+| `GET /api/v1/groups/:groupId` | Group members | `200`; `404` if there is no such group or you aren't a member (the same answer for both) |
 | `GET /api/v1/admin/groups` | `ADMIN` | `200` with every group; `403` for members |
 
 Errors are JSON: `{ "code": "...", "message": "..." }`, plus `fields` for invalid input. The `ADMIN` check reads the role from the database on every request, so removing someone's admin role takes effect at once. Pages under `/groups` and `/admin` send signed-out visitors to `/login`.
