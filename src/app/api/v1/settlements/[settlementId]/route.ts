@@ -13,11 +13,11 @@ export const dynamic = 'force-dynamic';
  * Only payments in the caller's own groups are found, so a non-member gets the same 404 as an
  * unknown ID.
  */
-export async function PATCH(request: NextRequest, { params }: { params: { settlementId: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ settlementId: string }> }) {
   try {
     const user = await requireUser(request);
     const settlement = await prisma.settlement.findFirst({
-      where: { id: params.settlementId, group: { members: { some: { userId: user.id } } } },
+      where: { id: (await params).settlementId, group: { members: { some: { userId: user.id } } } },
       include: { group: true },
     });
     if (!settlement) throw new HttpError(404, 'not_found', 'Payment not found.');

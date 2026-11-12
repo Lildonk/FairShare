@@ -16,14 +16,18 @@ let bob: User;
 let carol: User;
 
 async function call<P>(
-  handler: (request: NextRequest, context: { params: P }) => Promise<Response>,
+  handler: (request: NextRequest, context: { params: Promise<P> }) => Promise<Response>,
   method: string,
   url: string,
   params: P,
   user: User,
   body?: unknown,
 ) {
-  const response = await handler(jsonRequest(url, { method, body, cookie: await sessionCookie(user) }), { params });
+  // Next.js 15 passes route params as a promise.
+  const response = await handler(
+    jsonRequest(url, { method, body, cookie: await sessionCookie(user) }),
+    { params: Promise.resolve(params) },
+  );
   const text = await response.text();
   return { status: response.status, body: text ? JSON.parse(text) : null };
 }
