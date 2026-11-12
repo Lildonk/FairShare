@@ -121,6 +121,8 @@ Planned endpoint inventory from the blueprint (verify request/response schemas b
 | POST | /api/v1/groups/:id/expenses | Authenticated group member |
 | GET | /api/v1/groups/:id/settlements | Authenticated group member |
 | PATCH | /api/v1/settlements/:id | Authorized group member |
+| PATCH | /api/v1/groups/:id/expenses/:expenseId/dispute | Authenticated group member; 409 when archived (added in #8) |
+| GET | /api/v1/groups/:id/export?format=csv\|json | Authenticated group member, archived groups included (added in #8) |
 | GET | /api/v1/admin/groups | Authorized admin |
 | PATCH | /api/v1/admin/groups/:id/archive | Authorized admin |
 
