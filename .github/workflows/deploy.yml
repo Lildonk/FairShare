@@ -1,0 +1,188 @@
+name: Deploy
+
+# Vercel deployments, driven from GitHub Actions so every step is visible in the pipeline (#24).
+#
+# - Production: after CI passes on a push to main, apply migrations to the production database,
+#   then deploy that exact commit to production. No seed data in production.
+# - Preview: every pull request from this repository gets its own Neon database branch (migrated
+#   and seeded with the demo data) and its own Vercel preview URL, posted as a PR comment.
+#   Closing the PR deletes the database branch.
+#
+# Configuration (see docs/DEPLOYMENT.md):
+#   secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, NEON_API_KEY,
+#            PRODUCTION_DATABASE_URL_UNPOOLED (direct connection, for migrations)
+#   variables: NEON_PROJECT_ID
+#   Vercel project env: DATABASE_URL and JWT_SECRET for Production, JWT_SECRET for Preview.
+# When the secrets are missing (Dependabot PRs, forks), the deploy jobs skip instead of failing.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+# One deploy per PR at a time (a new push replaces the old one); production runs by commit, never cancelled.
+concurrency:
+  group: deploy-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  VERCEL_CLI: vercel@65.4.0
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  production:
+    name: Production deployment
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Check that deployment is configured
+        id: configured
+        run: echo "ok=${{ secrets.VERCEL_TOKEN != '' && secrets.PRODUCTION_DATABASE_URL_UNPOOLED != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout the commit CI tested
+        if: steps.configured.outputs.ok == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node.js
+        if: steps.configured.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.configured.outputs.ok == 'true'
+        run: npm ci
+
+      - name: Apply migrations to the production database
+        if: steps.configured.outputs.ok == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL_UNPOOLED }}
+        run: npx prisma migrate deploy
+
+      - name: Build and deploy to Vercel production
+        id: deploy
+        if: steps.configured.outputs.ok == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npx --yes "$VERCEL_CLI" pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx --yes "$VERCEL_CLI" build --prod --token="$VERCEL_TOKEN"
+          url="$(npx --yes "$VERCEL_CLI" deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Production: $url" >> "$GITHUB_STEP_SUMMARY"
+
+  preview:
+    name: Preview deployment
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Check that deployment is configured
+        id: configured
+        run: echo "ok=${{ secrets.VERCEL_TOKEN != '' && secrets.NEON_API_KEY != '' && vars.NEON_PROJECT_ID != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code
+        if: steps.configured.outputs.ok == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.configured.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.configured.outputs.ok == 'true'
+        run: npm ci
+
+      # Pinned by commit: this third-party action receives the Neon API key.
+      - name: Create this PR's database branch
+        id: neon
+        if: steps.configured.outputs.ok == 'true'
+        uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c # 6.3.1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Migrate and seed the preview database
+        if: steps.configured.outputs.ok == 'true'
+        env:
+          DATABASE_URL: ${{ steps.neon.outputs.db_url }}
+        run: |
+          npx prisma migrate deploy
+          npm run db:seed
+
+      - name: Build and deploy a Vercel preview
+        id: deploy
+        if: steps.configured.outputs.ok == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PREVIEW_DATABASE_URL: ${{ steps.neon.outputs.db_url_pooled }}
+        run: |
+          npx --yes "$VERCEL_CLI" pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          npx --yes "$VERCEL_CLI" build --token="$VERCEL_TOKEN"
+          url="$(npx --yes "$VERCEL_CLI" deploy --prebuilt --token="$VERCEL_TOKEN" --env DATABASE_URL="$PREVIEW_DATABASE_URL")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post the preview URL on the PR
+        if: steps.configured.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.deploy.outputs.url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          body="**Preview deployment** for \`${SHA:0:7}\`: $URL
+
+          Its own database branch (\`preview/pr-${{ github.event.pull_request.number }}\`), seeded with the demo data: sign in as \`alice@fairshare.test\` with the password \`fairshare-demo\`."
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" --edit-last --body "$body" \
+            || gh pr comment "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" --body "$body"
+
+  cleanup:
+    name: Delete the preview database branch
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that deployment is configured
+        id: configured
+        run: echo "ok=${{ secrets.NEON_API_KEY != '' && vars.NEON_PROJECT_ID != '' }}" >> "$GITHUB_OUTPUT"
+
+      # Pinned by commit: this third-party action receives the Neon API key.
+      - name: Delete preview/pr-${{ github.event.pull_request.number }}
+        if: steps.configured.outputs.ok == 'true'
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776 # v3.2.1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
