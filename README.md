@@ -2,7 +2,7 @@
 
 Multi-party expense sharing web app for groups — with debt simplification, four split modes, settlement tracking, an audit ledger, and an admin interface.
 
-- **Production:** _URL added after the first production deploy (#55)_
+- **Production:** https://fairshare-ruby.vercel.app (Vercel + Neon; see [deployment](docs/DEPLOYMENT.md))
 - **API docs:** `/api/docs` (Swagger UI) and `/api/v1/openapi.json`
 - **Team:** Zheqi Lv ([@Lildonk](https://github.com/Lildonk)) and Zichen Tian ([@tianzach](https://github.com/tianzach)), CS6983 Project 2
 
