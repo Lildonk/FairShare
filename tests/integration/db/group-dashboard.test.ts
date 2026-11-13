@@ -48,19 +48,18 @@ describe('loadGroupDashboard', () => {
     expect(await loadGroupDashboard(alice.id, '00000000-0000-0000-0000-000000000000')).toBeNull();
   });
 
-  it('returns the group with its invite code and members in join order', async () => {
+  it('returns the group with its invite code and its members', async () => {
     const dashboard = await loadGroupDashboard(bob.id, trip.id);
 
-    expect(dashboard?.group).toMatchObject({
-      id: trip.id,
-      name: trip.name,
-      isArchived: false,
-      inviteCode: trip.inviteCode,
-      members: [
+    expect(dashboard?.group).toMatchObject({ id: trip.id, name: trip.name, isArchived: false, inviteCode: trip.inviteCode });
+    // Both memberships come from one insert with the same joinedAt, so their order is not defined here.
+    expect(dashboard?.group.members).toHaveLength(2);
+    expect(dashboard?.group.members).toEqual(
+      expect.arrayContaining([
         { id: alice.id, name: 'DashAlice' },
         { id: bob.id, name: 'DashBob' },
-      ],
-    });
+      ]),
+    );
   });
 
   it('returns expenses and payments in the shapes the board uses, with payment IDs', async () => {
