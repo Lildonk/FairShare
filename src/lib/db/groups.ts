@@ -2,6 +2,33 @@
 import type { Group } from '@prisma/client';
 import { prisma } from './prisma';
 
+/** A group as listed for one of its members. */
+export interface GroupSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  currency: string;
+  isArchived: boolean;
+  memberCount: number;
+}
+
+/** The groups this user belongs to, by name. */
+export async function groupsForUser(userId: string): Promise<GroupSummary[]> {
+  const groups = await prisma.group.findMany({
+    where: { members: { some: { userId } } },
+    orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      currency: true,
+      isArchived: true,
+      _count: { select: { members: true } },
+    },
+  });
+  return groups.map(({ _count, ...group }) => ({ ...group, memberCount: _count.members }));
+}
+
 /** The IDs of a group's members. */
 export async function groupMemberIds(groupId: string): Promise<string[]> {
   const members = await prisma.groupMember.findMany({ where: { groupId }, select: { userId: true } });
