@@ -129,6 +129,26 @@ describe('SettlementBoard', () => {
       ).toBeInTheDocument();
     });
 
+    it('offers Record payment only on transfers the viewer pays or receives (#47 rule)', () => {
+      render(<SettlementBoard state={ready()} currentUserId="u-dana" onRecordPayment={vi.fn()} />);
+
+      const buttons = screen.getAllByRole('button', { name: /^Record payment/ });
+      expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual([
+        'Record payment: Dana pays Alice $229.00',
+        'Record payment: Dana pays Charlie $47.00',
+      ]);
+      // Other transfers are still listed, without an action.
+      expect(transferTexts()).toContain('Bob pays Alice $345.00');
+    });
+
+    it('offers no Record payment in a read-only (archived) group and says why', () => {
+      render(<SettlementBoard state={ready()} currentUserId="u-bob" readOnly onRecordPayment={vi.fn()} />);
+
+      expect(screen.queryByRole('button', { name: /^Record payment/ })).not.toBeInTheDocument();
+      expect(screen.getByText('This group is archived, so payments can’t be recorded.')).toBeInTheDocument();
+      expect(transferTexts()).toContain('Bob pays Alice $345.00');
+    });
+
     it('says everyone is settled up when no transfers are needed', () => {
       setup(
         ready({
@@ -251,6 +271,36 @@ describe('SettlementBoard', () => {
         <SettlementBoard state={ready({ settlements: [bobPaid] })} onRecordPayment={onRecordPayment} />,
       );
 
+      expect(chipTexts()).toEqual([
+        'Alice: gets back $229.00',
+        'Bob: settled up',
+        'Charlie: gets back $47.00',
+        'Dana: owes $276.00',
+      ]);
+    });
+
+    it('keeps a saved payment until refreshed data includes its id (#42 review)', async () => {
+      const bobPaid: SettlementRecord = {
+        id: 's-1',
+        fromUserId: 'u-bob',
+        toUserId: 'u-alice',
+        amountCents: 34500,
+        status: 'CONFIRMED',
+      };
+      const onRecordPayment = vi.fn<(payment: PaymentRequest) => Promise<SettlementRecord>>();
+      onRecordPayment.mockResolvedValue(bobPaid);
+      const user = userEvent.setup();
+      const { rerender } = render(<SettlementBoard state={ready()} onRecordPayment={onRecordPayment} />);
+
+      await user.click(screen.getByRole('button', bobPaysAlice));
+      await screen.findByText('Recorded: Bob paid Alice $345.00.');
+      // A refetch that started before the save committed: new data, still without the payment.
+      rerender(<SettlementBoard state={ready()} onRecordPayment={onRecordPayment} />);
+      expect(chipTexts()).toContain('Bob: settled up');
+      expect(screen.queryByRole('button', bobPaysAlice)).not.toBeInTheDocument();
+
+      // The next refetch includes it: counted once.
+      rerender(<SettlementBoard state={ready({ settlements: [bobPaid] })} onRecordPayment={onRecordPayment} />);
       expect(chipTexts()).toEqual([
         'Alice: gets back $229.00',
         'Bob: settled up',
