@@ -2,6 +2,41 @@
 
 Multi-party expense sharing web app for groups — with debt simplification, four split modes, settlement tracking, an audit ledger, and an admin interface.
 
+- **Production:** _URL added after the first production deploy (#55)_
+- **API docs:** `/api/docs` (Swagger UI) and `/api/v1/openapi.json`
+- **Team:** Zheqi Lv ([@Lildonk](https://github.com/Lildonk)) and Zichen Tian ([@tianzach](https://github.com/tianzach)), CS6983 Project 2
+
+## Documentation
+
+| Document | What it covers |
+| --- | --- |
+| [Architecture](docs/ARCHITECTURE.md) | System diagram, layers, request path, security model, delivery pipeline |
+| [Database schema](docs/DATABASE.md) | Entity-relationship diagram and the constraints behind it |
+| [Deployment guide](docs/DEPLOYMENT.md) | Environments, Vercel and Neon setup, secrets, rollback |
+| [Product spec](docs/FAIRSHARE_PRODUCT_SPEC.md) and [blueprint](docs/blueprint/FAIRSHARE_BLUEPRINT.md) | User stories, acceptance criteria, data and API decisions |
+| [AI workflow](docs/AI_WORKFLOW.md) and [AGENTS.md](AGENTS.md) | Shared AI rules, context engineering, AI-assisted TDD evidence |
+| [Contribution log](docs/CONTRIBUTIONS.md) | Who did what: issues, PRs, reviews, commits |
+| Scrum | Standups ([Sprint 1](docs/scrum/standups.md), [Sprint 2 #29](https://github.com/Lildonk/FairShare/issues/29)), retrospectives ([Sprint 1](docs/scrum/sprint-1-retrospective.md), [Sprint 2](docs/scrum/sprint-2-retrospective.md)), [milestones](https://github.com/Lildonk/FairShare/milestones) |
+| [UI mockups](docs/mockups/README.md) | The four screen concepts the UI follows |
+
+## Features
+
+- **Accounts:** email/password and Google sign-in, with sessions in HttpOnly cookies.
+- **Groups:** create a group, invite people with a code, and join one.
+- **Expenses:** EQUAL, EXACT, PERCENTAGE, and ITEMIZED (prorated tax and tip) splits, with a live allocation preview. Amounts are always integer cents, and the server re-checks every share.
+- **Settle up:**
+  - owes/gets-back balance chips;
+  - a transfer plan from the greedy creditor/debtor matcher, at most N−1 transfers for N members who owe or are owed;
+  - a transaction graph;
+  - Record Payment, which the payer or the receiver records. The receiver's record confirms it at once; the payer's waits for the receiver to confirm or dispute it.
+- **Audit:**
+  - an activity ledger
+  - dispute flags
+  - CSV/JSON export with a spreadsheet-formula guard
+  - an append-only audit trail enforced by the database
+- **Admin:** platform-wide oversight, archiving that freezes a ledger, and a list of disputes.
+- **Public API:** stateless `POST /api/v1/simplify` and `POST /api/v1/split/calculate`, documented with OpenAPI.
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 20.19+, 22.13+, or 24+ (required by Vite 8 and jsdom 29)
