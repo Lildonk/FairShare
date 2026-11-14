@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { validateGroupInput } from '@/lib/api/group-input';
 import { requireUser } from '@/lib/auth/current-user';
-import { groupDetail } from '@/lib/db/groups';
+import { groupDetail, groupsForUser } from '@/lib/db/groups';
 import { prisma } from '@/lib/db/prisma';
 import { HttpError, errorResponse, readJson } from '@/lib/http/responses';
 
@@ -27,21 +27,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireUser(request);
-    const groups = await prisma.group.findMany({
-      where: { members: { some: { userId: user.id } } },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        currency: true,
-        isArchived: true,
-        _count: { select: { members: true } },
-      },
-    });
-    return NextResponse.json({
-      groups: groups.map(({ _count, ...group }) => ({ ...group, memberCount: _count.members })),
-    });
+    return NextResponse.json({ groups: await groupsForUser(user.id) });
   } catch (error) {
     return errorResponse(error);
   }

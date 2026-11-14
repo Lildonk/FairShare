@@ -80,12 +80,17 @@ FairShare supports email/password and **Continue with Google**. Both create the 
 | `GET`, `POST /api/v1/groups/:groupId/settlements` | Group members | Balances, suggested transfers, and payments; or record a payment (payer or receiver only) |
 | `PATCH /api/v1/settlements/:settlementId` | The receiver | Confirm or dispute a pending payment; `409` if it is no longer pending |
 | `GET /api/v1/admin/groups` | `ADMIN` | `200` with every group; `403` for members |
+| `PATCH /api/v1/admin/groups/:groupId/archive` | `ADMIN` | `200` with the archived group (archiving twice changes nothing); `403` for members; `404` unknown group |
 | `POST /api/v1/simplify` | Anyone | `200` with net balances and the transfers that settle them; `400` with field errors. Stateless |
 | `POST /api/v1/split/calculate` | Anyone | `200` with one allocation per member (EQUAL, EXACT, PERCENTAGE, or ITEMIZED); `400` with field errors. Stateless |
 | `GET /api/v1/openapi.json` | Anyone | The OpenAPI 3.0 document for every endpoint above |
 | `GET /api/docs` | Anyone | Swagger UI for that document |
 
 Errors are JSON: `{ "code": "...", "message": "..." }`, plus `fields` for invalid input. The `ADMIN` check reads the role from the database on every request, so removing someone's admin role takes effect at once. Pages under `/groups` and `/admin` send signed-out visitors to `/login`.
+
+**Groups page:** `/groups` lists your groups (each links to its dashboard at `/groups/{id}`), creates a group and shows its invite code, and joins a group by invite code.
+
+**Admin portal:** `/admin` lists every group with its member, expense, and dispute counts, lets an admin archive a group (with a confirm step), and lists disputed expenses from every group. Archiving freezes the group's ledger. Members who open `/admin` see an "Admins only" page. Locally, sign in as `admin@fairshare.test`.
 
 Writes to an archived group answer `409 group_archived`, and request bodies over 512 KiB answer `413`.
 
