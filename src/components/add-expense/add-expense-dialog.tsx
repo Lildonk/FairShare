@@ -159,9 +159,12 @@ export function AddExpenseDialog({
       <div
         role="dialog"
         aria-modal="true"
+        // Focusable from script only, so a click on plain text inside keeps focus in the dialog
+        // (the APG modal pattern); otherwise it would move to <body> and Escape would do nothing.
+        tabIndex={-1}
         aria-labelledby={titleId}
         onKeyDown={handleKeyDown}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl focus:outline-none"
       >
         <form noValidate onSubmit={handleSubmit} className="space-y-5">
           <h2 id={titleId} className="text-xl font-semibold text-gray-900">

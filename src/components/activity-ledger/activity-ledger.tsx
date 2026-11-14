@@ -16,6 +16,8 @@ export interface ActivityLedgerProps {
   onToggleDispute: (entryId: string, disputed: boolean) => Promise<void>;
   /** Server routes that check membership before returning the export (see #8). */
   exportLinks: { csv: string; json: string };
+  /** An archived group: entries and exports stay available, but disputes can't be changed. */
+  readOnly?: boolean;
 }
 
 // UTC, so the date matches the exported timestamp whatever the viewer's time zone.
@@ -29,7 +31,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
 const SETTLEMENT_LABELS = { PENDING: 'Pending', CONFIRMED: 'Confirmed', DISPUTED: 'Disputed' } as const;
 
 /** Group activity ledger (Issue #8): expenses and payments with dispute flags and export links. */
-export function ActivityLedger({ state, onToggleDispute, exportLinks }: ActivityLedgerProps) {
+export function ActivityLedger({ state, onToggleDispute, exportLinks, readOnly = false }: ActivityLedgerProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-900">Activity</h2>
@@ -55,6 +57,7 @@ export function ActivityLedger({ state, onToggleDispute, exportLinks }: Activity
           entries={state.entries}
           onToggleDispute={onToggleDispute}
           exportLinks={exportLinks}
+          readOnly={readOnly}
         />
       )}
     </div>
@@ -71,10 +74,12 @@ function ReadyLedger({
   entries,
   onToggleDispute,
   exportLinks,
+  readOnly,
 }: {
   entries: LedgerExportRow[];
   onToggleDispute: ActivityLedgerProps['onToggleDispute'];
   exportLinks: ActivityLedgerProps['exportLinks'];
+  readOnly: boolean;
 }) {
   // Dispute flags changed on this page, applied over the loaded entries (optimistic update).
   // A flag counts only over the entries it was set on: refreshed entries are the source of truth.
@@ -102,8 +107,9 @@ function ReadyLedger({
     const disputed = !isDisputed(row);
     setFlag(row.id, { disputed, basis: entries });
     setSaving((current) => new Set(current).add(row.id));
-    // Clear the old message first, so a repeated failure is announced again.
+    // Clear the old messages first, so a repeated success or failure is announced again.
     setError(null);
+    setNotice('');
     try {
       await onToggleDispute(row.id, disputed);
       setNotice(
@@ -182,7 +188,7 @@ function ReadyLedger({
                   {chip && <StatusChip label={chip} />}
                 </div>
               </div>
-              {row.type === 'EXPENSE' && (
+              {row.type === 'EXPENSE' && !readOnly && (
                 <button
                   type="button"
                   // The accessible name starts with the visible label (WCAG 2.5.3 Label in Name).
