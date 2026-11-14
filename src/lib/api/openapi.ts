@@ -74,6 +74,7 @@ export const openApiDocument = {
     { name: 'Groups', description: 'Groups you belong to.' },
     { name: 'Expenses', description: 'A group’s shared expenses. Any member may add, change, or delete them.' },
     { name: 'Settlements', description: 'Balances, suggested transfers, and recorded payments.' },
+    { name: 'Ledger', description: 'A group’s activity: dispute flags and exports (#8).' },
     { name: 'Admin', description: 'Platform-wide oversight. `ADMIN` role only.' },
     { name: 'Calculators', description: 'Public, stateless money calculators. They read no account or group data.' },
     { name: 'Docs', description: 'This document.' },
@@ -271,6 +272,77 @@ export const openApiDocument = {
         },
       },
     },
+    '/api/v1/groups/{groupId}/expenses/{expenseId}/dispute': {
+      patch: {
+        tags: ['Ledger'],
+        summary: 'Flag an expense for review, or clear the flag',
+        description:
+          'Any member may set or clear the flag; an audit event records who (EXPENSE_DISPUTED or EXPENSE_UNDISPUTED). ' +
+          'Setting the value the expense already has changes nothing. Refused with 409 while the group is archived.',
+        security: SIGNED_IN,
+        parameters: [groupId, expenseId],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['disputed'],
+                properties: { disputed: { type: 'boolean', description: 'true flags the expense; false clears the flag.' } },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': jsonBody('The expense with its flag.', schema('ExpenseResponse')),
+          '400': response('InvalidInput'),
+          '401': response('Unauthorized'),
+          '404': expenseNotFound,
+          '409': response('GroupArchived'),
+        },
+      },
+    },
+    '/api/v1/groups/{groupId}/export': {
+      get: {
+        tags: ['Ledger'],
+        summary: 'Download the group’s ledger',
+        description:
+          'Every expense and recorded payment, oldest first, as a file download. Amounts are given both as dollars ' +
+          'and as integer cents. In CSV, cells a spreadsheet would run as a formula start with an apostrophe. ' +
+          'Archived groups can still be exported.',
+        security: SIGNED_IN,
+        parameters: [
+          groupId,
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['csv', 'json'], default: 'json' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'The ledger, sent with `Content-Disposition: attachment`.',
+            content: {
+              'text/csv': { schema: { type: 'string', example: 'date,type,description,from,to,amount,amount_cents,status' } },
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    group: { type: 'string' },
+                    exportedAt: { type: 'string', format: 'date-time' },
+                    entries: { type: 'array', items: { type: 'object' } },
+                  },
+                },
+              },
+            },
+          },
+          '400': response('InvalidInput'),
+          '401': response('Unauthorized'),
+          '404': response('GroupNotFound'),
+        },
+      },
+    },
     '/api/v1/groups/{groupId}/settlements': {
       get: {
         tags: ['Settlements'],
@@ -340,6 +412,28 @@ export const openApiDocument = {
           }),
           '401': response('Unauthorized'),
           '403': response('Forbidden'),
+        },
+      },
+    },
+    '/api/v1/admin/groups/{groupId}/archive': {
+      patch: {
+        tags: ['Admin'],
+        summary: 'Archive a group',
+        description:
+          'Freezes the group’s ledger: adding, changing, or deleting expenses, recording or answering payments, ' +
+          'and joining then answer 409, while members can still read everything. Archiving twice changes ' +
+          'nothing. The admin need not be a member. There is no unarchive yet.',
+        security: SIGNED_IN,
+        parameters: [groupId],
+        responses: {
+          '200': jsonBody('The archived group.', {
+            type: 'object',
+            required: ['group'],
+            properties: { group: schema('AdminGroup') },
+          }),
+          '401': response('Unauthorized'),
+          '403': response('Forbidden'),
+          '404': jsonBody('No such group (`not_found`). Only admins get this far.', schema('Error')),
         },
       },
     },

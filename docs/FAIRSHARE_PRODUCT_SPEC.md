@@ -47,6 +47,7 @@ As a member or authorized auditor, I want a transparent activity history so we c
 - Flag/unflag disputed expenses, keeping group-level authorization.
 - Export permitted group ledger or settlement data in CSV and JSON.
 - **Decision (#2):** the audit-event table is not part of the #2 schema. #8 adds an append-only audit-event model in its own migration. Until then, the #2 schema blocks deleting users who have financial history (see [Data model decisions](#data-model-decisions)).
+- **Decision (#8):** the append-only `AuditEvent` model is added; see [Data model decisions](#data-model-decisions).
 
 ### US-5 — Register, log in, and manage authorized groups (GitHub #2, #3)
 
@@ -89,7 +90,14 @@ Decided in #2 (2026-11-06):
 | No CHECK constraints | Expense and settlement amounts > 0; shares ≥ 0; basis points 0–10000; settlement payer ≠ payee | The database rejects invalid money rows, not only API validation. |
 | Indexes only from unique keys | Indexes on foreign keys and common lookups | PostgreSQL does not index foreign keys automatically. |
 | `Settlement` without `updatedAt` | Adds `updatedAt` | Status changes (PENDING → CONFIRMED/DISPUTED) are timestamped. |
-| No audit table | Deferred to #8 (see US-4) | #8 owns the audit trail and adds it in its own migration. |
+| No audit table | Added in #8: append-only `AuditEvent` (see below) | #8 owns the audit trail and adds it in its own migration. |
+
+**Audit trail (#8, agreed with Zheqi on 2026-11-10):** `AuditEvent` stores `groupId`, `actorId`, an `AuditAction`, the `entityId` of the expense or settlement (no foreign key, so events outlive a deleted expense), a JSON `snapshot` in integer cents, and `createdAt`.
+- **Append-only in the database:** a trigger rejects `UPDATE`, `DELETE`, and `TRUNCATE`. Only a transaction that runs `SET LOCAL fairshare.audit_maintenance = 'on'` may delete, and only the test cleanup helper (`deleteAuditEventsAsMaintenance` in `tests/integration/helpers/auth-helpers.ts`) does that. Updates are never allowed.
+- **`onDelete: Restrict`** on group and actor: a group with history is archived (#11), not deleted.
+- **Writing events:** call `recordAuditEvent(tx, …)` from `src/lib/db/audit-log.ts` with the `tx` of the same `prisma.$transaction` as the change, so a change is never saved without its event. Type `tx` as `DbTransaction` from `src/lib/db/prisma.ts`.
+- **What is recorded:** the #9 endpoints write `EXPENSE_CREATED`, `EXPENSE_UPDATED`, `EXPENSE_DELETED`, `SETTLEMENT_RECORDED`, and `SETTLEMENT_STATUS_CHANGED`. The snapshot is the same DTO the API returns (`toExpenseDto` / `toSettlementDto`); for a deletion it is the expense just before the delete. The actor is always the signed-in user. Refused writes record nothing.
+- **Seeding:** insert audit events with `createMany({ skipDuplicates: true })`, because an upsert on an existing row is an `UPDATE`.
 
 **Environments:** local development uses PostgreSQL 17 (Homebrew on macOS; Docker or the official installer elsewhere), configured only through `DATABASE_URL` in an untracked `.env`. CI uses a PostgreSQL 17 service container. Deployed environments (later issues) use hosted PostgreSQL such as Neon, as the blueprint plans, with separate preview and production databases.
 
@@ -113,6 +121,8 @@ Planned endpoint inventory from the blueprint (verify request/response schemas b
 | POST | /api/v1/groups/:id/expenses | Authenticated group member |
 | GET | /api/v1/groups/:id/settlements | Authenticated group member |
 | PATCH | /api/v1/settlements/:id | Authorized group member |
+| PATCH | /api/v1/groups/:id/expenses/:expenseId/dispute | Authenticated group member; 409 when archived (added in #8) |
+| GET | /api/v1/groups/:id/export?format=csv\|json | Authenticated group member, archived groups included (added in #8) |
 | GET | /api/v1/admin/groups | Authorized admin |
 | PATCH | /api/v1/admin/groups/:id/archive | Authorized admin |
 
@@ -123,7 +133,15 @@ Decided in #3 (2026-11-09):
 - **Session in an HttpOnly cookie, never in a response body.** The issue requires that tokens not appear in responses, and AGENTS.md prefers cookies over tokens readable by JavaScript. The blueprint's "return signed JWT token" is met by the signed JWT in the cookie. A Bearer-token flow for external API clients is not implemented; add it in #9 if it's needed.
 - **Accounts are never merged by email.** Password accounts don't verify their email, so someone could register a victim's address first. An existing account must be signed in before Google can be connected. Unverified Google emails are refused, and a Google account can belong to only one FairShare account.
 - **Status codes:** 401 when not signed in (or the session is invalid or expired), 403 for a non-admin, 404 for an unknown group or one you aren't a member of, 409 for a taken email. Login answers an unknown email and a wrong password the same way. A group you aren't in gets the same 404 as one that doesn't exist, so group IDs can't be probed (agreed in the #26 review).
-- **Admin checks read the role from the database**, not the token, so a demoted admin loses access at once. The page middleware uses the token's role only to choose a redirect.
+- **Admin checks read the role from the database**, not the token, so a demoted admin loses access at once. Since #11, the page middleware only checks that a session exists. The `/admin` page reads the role itself and shows members an "Admins only" page instead of redirecting them.
+
+### Admin portal decisions
+
+Proposed in #11 (2026-11-10), for partner review. This is the scope of ADMIN within the platform-wide decision (US-6):
+
+- **What an admin can do:** see every group with its member, expense, and dispute counts; see disputed expenses from every group; and archive any group, without being a member (`PATCH /api/v1/admin/groups/:groupId/archive`).
+- **What an admin can't do:** read or change a group's expenses and payments through the member endpoints unless they are a member, unarchive a group, or resolve disputes. Unarchiving and dispute resolution can follow if the partners want them.
+- **Archiving is one-way and idempotent.** It freezes the ledger: expense, payment, and join requests answer 409, while members can still read everything. The archive check runs after the role check, so members never learn whether a group ID exists.
 - **Not in scope for #3:** email verification, password reset, rate limiting of login attempts, and session revocation before the 7-day expiry.
 
 ### API decisions

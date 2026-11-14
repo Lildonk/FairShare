@@ -30,6 +30,17 @@ enum SettlementStatus {
   DISPUTED
 }
 
+/// What an AuditEvent records (#8). #11 adds GROUP_ARCHIVED with its own migration.
+enum AuditAction {
+  EXPENSE_CREATED
+  EXPENSE_UPDATED
+  EXPENSE_DELETED
+  EXPENSE_DISPUTED
+  EXPENSE_UNDISPUTED
+  SETTLEMENT_RECORDED
+  SETTLEMENT_STATUS_CHANGED
+}
+
 model User {
   id                  String         @id @default(uuid())
   email               String         @unique
@@ -44,6 +55,7 @@ model User {
   splits              ExpenseSplit[]
   settlementsSent     Settlement[]   @relation("SettlementFrom")
   settlementsReceived Settlement[]   @relation("SettlementTo")
+  auditEvents         AuditEvent[]
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 }
@@ -58,6 +70,7 @@ model Group {
   members     GroupMember[]
   expenses    Expense[]
   settlements Settlement[]
+  auditEvents AuditEvent[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
@@ -130,4 +143,27 @@ model Settlement {
   @@index([groupId, status])
   @@index([fromUserId])
   @@index([toUserId])
+}
+
+/// One change to a group's financial history (#8). Append-only: a trigger in the migration SQL
+/// rejects UPDATE, DELETE, and TRUNCATE. Only test cleanup may delete, by turning on
+/// `fairshare.audit_maintenance` in its transaction. Write events with `recordAuditEvent`
+/// (src/lib/db/audit-log.ts) in the same transaction as the change they describe.
+model AuditEvent {
+  id        String      @id @default(uuid())
+  /// Restrict: a group with history is archived (#11), never deleted.
+  groupId   String
+  group     Group       @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  /// Restrict: the user who made a change stays on record.
+  actorId   String
+  actor     User        @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action    AuditAction
+  /// The expense or settlement the event is about. No foreign key, so the event outlives a deleted expense.
+  entityId  String
+  /// The record after the change (before it, for deletions). Amounts in integer cents.
+  snapshot  Json
+  createdAt DateTime    @default(now())
+
+  @@index([groupId, createdAt])
+  @@index([entityId])
 }

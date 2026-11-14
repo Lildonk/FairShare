@@ -80,12 +80,17 @@ FairShare supports email/password and **Continue with Google**. Both create the 
 | `GET`, `POST /api/v1/groups/:groupId/settlements` | Group members | Balances, suggested transfers, and payments; or record a payment (payer or receiver only) |
 | `PATCH /api/v1/settlements/:settlementId` | The receiver | Confirm or dispute a pending payment; `409` if it is no longer pending |
 | `GET /api/v1/admin/groups` | `ADMIN` | `200` with every group; `403` for members |
+| `PATCH /api/v1/admin/groups/:groupId/archive` | `ADMIN` | `200` with the archived group (archiving twice changes nothing); `403` for members; `404` unknown group |
 | `POST /api/v1/simplify` | Anyone | `200` with net balances and the transfers that settle them; `400` with field errors. Stateless |
 | `POST /api/v1/split/calculate` | Anyone | `200` with one allocation per member (EQUAL, EXACT, PERCENTAGE, or ITEMIZED); `400` with field errors. Stateless |
 | `GET /api/v1/openapi.json` | Anyone | The OpenAPI 3.0 document for every endpoint above |
 | `GET /api/docs` | Anyone | Swagger UI for that document |
 
 Errors are JSON: `{ "code": "...", "message": "..." }`, plus `fields` for invalid input. The `ADMIN` check reads the role from the database on every request, so removing someone's admin role takes effect at once. Pages under `/groups` and `/admin` send signed-out visitors to `/login`.
+
+**Groups page:** `/groups` lists your groups (each links to its dashboard at `/groups/{id}`), creates a group and shows its invite code, and joins a group by invite code.
+
+**Admin portal:** `/admin` lists every group with its member, expense, and dispute counts, lets an admin archive a group (with a confirm step), and lists disputed expenses from every group. Archiving freezes the group's ledger. Members who open `/admin` see an "Admins only" page. Locally, sign in as `admin@fairshare.test`.
 
 Writes to an archived group answer `409 group_archived`, and request bodies over 512 KiB answer `413`.
 
@@ -114,9 +119,26 @@ Until then, the Google button shows "Google sign-in isn't set up yet."
 | `npm run test:watch` | Run Vitest in watch mode                   |
 | `npm run test:coverage` | Run tests with coverage report          |
 | `npm run test:integration` | Run database tests against `DATABASE_URL`. They create and delete their own rows and never empty tables, so your local database is safe. |
+| `npm run test:e2e` | Build the app, start it on port 3100, and run the Playwright browser tests (see below) |
 | `npm run db:migrate` | Create and apply Prisma migrations in development |
 | `npm run db:seed`    | Load the deterministic sample data         |
 | `npm run db:reset`   | Delete all local data, re-apply migrations, and seed |
+
+### End-to-end tests
+
+The Playwright tests in `tests/e2e/` drive Chromium through the real app:
+- registration
+- sign-in and sign-out
+- a wrong password
+- a protected page that sends you to sign in and back
+
+To run them locally:
+
+1. Set up the database and `.env` as above, and seed it (`npm run db:seed`).
+2. Install the browser once: `npx playwright install chromium`.
+3. Run `npm run test:e2e`.
+
+The config builds the app and starts it on port 3100 (it reuses a server already running there). The tests run one at a time against `DATABASE_URL`. Each run creates fresh `@e2e.test` accounts, and the global teardown deletes them, along with any `E2E ` groups only they belong to; seed data is never touched. On failure, Playwright keeps a trace and screenshot in `test-results/`; open the trace with `npx playwright show-trace`.
 
 ## Project Structure
 
@@ -152,7 +174,7 @@ Copy `.env.example` to `.env` in the project root. Use `.env`, not `.env.local`:
 
 ## Tech Stack
 
-- **Frontend:** Next.js 14 (App Router), React 18, TypeScript, TailwindCSS, Lucide React
+- **Frontend:** Next.js 15 (App Router), React 19, TypeScript, TailwindCSS, Lucide React
 - **Backend:** Next.js Route Handlers (`/api/v1`)
 - **Database:** PostgreSQL 17 with Prisma ORM 6
 - **Auth:** JWT + bcrypt, Google OAuth 2.0 / OIDC
@@ -172,7 +194,7 @@ Copy `.env.example` to `.env` in the project root. Use `.env`, not `.env.local`:
 
 Every pull request (whatever its base branch) and every push to `main` runs two workflows.
 
-**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs four stages. Each stage starts only after the one before it passes:
+**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs five stages. Each stage starts only after the one before it passes:
 
 | Stage | What it checks |
 | ----- | -------------- |
@@ -180,10 +202,11 @@ Every pull request (whatever its base branch) and every push to `main` runs two 
 | 2. Unit Tests & Coverage | `npm run test:coverage`. Fails if anything in `src/lib/finance/` drops below 100% coverage (the blueprint target for the debt and tax/tip engines). The report is uploaded as the `coverage` artifact. |
 | 3. Migrations, Seed & Integration Tests | Applies the migrations to an empty PostgreSQL 17 database, checks that the schema matches them, seeds the database, and runs `npm run test:integration` |
 | 4. Production Build | `npm run build` |
+| 5. End-to-End Tests | On a fresh, seeded PostgreSQL 17 database, with a signing key generated for the run: builds the app, installs Chromium, and runs `npm run test:e2e`. On failure, the Playwright report and traces are uploaded as the `playwright-report` artifact. |
 
 **Security** ([`.github/workflows/security.yml`](.github/workflows/security.yml)) also runs weekly on `main`:
 
-- **Dependency audit:** `npm audit --omit=dev --audit-level=high` on production dependencies. For now it only reports and does not fail CI, because `next@14.2.35` has advisories that only a major Next.js upgrade fixes (decision tracked in #24).
+- **Dependency audit:** `npm audit --omit=dev --audit-level=critical` on production dependencies, so a critical advisory fails CI. Since the Next.js 15 upgrade (#46), the remaining high advisories are PostCSS bundled inside Next.js and `deepmerge-ts` in the Prisma CLI; only later major upgrades fix them, and the gate goes back to `high` once they do.
 - **Dependency review** (pull requests only): fails a PR that adds a dependency with a high or critical advisory.
 - **CodeQL:** static analysis of the TypeScript code with the `security-extended` queries. Results appear under the repository's **Security → Code scanning** tab.
 
