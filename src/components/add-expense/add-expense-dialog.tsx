@@ -29,6 +29,8 @@ export interface AddExpenseDialogProps {
   currentUserId: string;
   onSubmit: (expense: NewExpense) => void;
   onCancel: () => void;
+  /** Why the server refused the last submit. Shown inside the dialog, since the page behind it is inert. */
+  submitError?: string | null;
 }
 
 const SPLIT_MODES: { value: BasicSplitMode; label: string }[] = [
@@ -52,6 +54,7 @@ export function AddExpenseDialog({
   currentUserId,
   onSubmit,
   onCancel,
+  submitError = null,
 }: AddExpenseDialogProps) {
   const id = useId();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -170,6 +173,12 @@ export function AddExpenseDialog({
           <h2 id={titleId} className="text-xl font-semibold text-gray-900">
             Add expense
           </h2>
+
+          {submitError && (
+            <p role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+              {submitError}
+            </p>
+          )}
 
           {showErrors && (
             <div role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm">
