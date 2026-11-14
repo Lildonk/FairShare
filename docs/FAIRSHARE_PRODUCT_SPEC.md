@@ -47,6 +47,7 @@ As a member or authorized auditor, I want a transparent activity history so we c
 - Flag/unflag disputed expenses, keeping group-level authorization.
 - Export permitted group ledger or settlement data in CSV and JSON.
 - **Decision (#2):** the audit-event table is not part of the #2 schema. #8 adds an append-only audit-event model in its own migration. Until then, the #2 schema blocks deleting users who have financial history (see [Data model decisions](#data-model-decisions)).
+- **Decision (#8):** the append-only `AuditEvent` model is added; see [Data model decisions](#data-model-decisions).
 
 ### US-5 — Register, log in, and manage authorized groups (GitHub #2, #3)
 
@@ -89,7 +90,14 @@ Decided in #2 (2026-11-06):
 | No CHECK constraints | Expense and settlement amounts > 0; shares ≥ 0; basis points 0–10000; settlement payer ≠ payee | The database rejects invalid money rows, not only API validation. |
 | Indexes only from unique keys | Indexes on foreign keys and common lookups | PostgreSQL does not index foreign keys automatically. |
 | `Settlement` without `updatedAt` | Adds `updatedAt` | Status changes (PENDING → CONFIRMED/DISPUTED) are timestamped. |
-| No audit table | Deferred to #8 (see US-4) | #8 owns the audit trail and adds it in its own migration. |
+| No audit table | Added in #8: append-only `AuditEvent` (see below) | #8 owns the audit trail and adds it in its own migration. |
+
+**Audit trail (#8, agreed with Zheqi on 2026-11-10):** `AuditEvent` stores `groupId`, `actorId`, an `AuditAction`, the `entityId` of the expense or settlement (no foreign key, so events outlive a deleted expense), a JSON `snapshot` in integer cents, and `createdAt`.
+- **Append-only in the database:** a trigger rejects `UPDATE`, `DELETE`, and `TRUNCATE`. Only a transaction that runs `SET LOCAL fairshare.audit_maintenance = 'on'` may delete, and only the test cleanup helper (`deleteAuditEventsAsMaintenance` in `tests/integration/helpers/auth-helpers.ts`) does that. Updates are never allowed.
+- **`onDelete: Restrict`** on group and actor: a group with history is archived (#11), not deleted.
+- **Writing events:** call `recordAuditEvent(tx, …)` from `src/lib/db/audit-log.ts` with the `tx` of the same `prisma.$transaction` as the change, so a change is never saved without its event. Type `tx` as `DbTransaction` from `src/lib/db/prisma.ts`.
+- **What is recorded:** the #9 endpoints write `EXPENSE_CREATED`, `EXPENSE_UPDATED`, `EXPENSE_DELETED`, `SETTLEMENT_RECORDED`, and `SETTLEMENT_STATUS_CHANGED`. The snapshot is the same DTO the API returns (`toExpenseDto` / `toSettlementDto`); for a deletion it is the expense just before the delete. The actor is always the signed-in user. Refused writes record nothing.
+- **Seeding:** insert audit events with `createMany({ skipDuplicates: true })`, because an upsert on an existing row is an `UPDATE`.
 
 **Environments:** local development uses PostgreSQL 17 (Homebrew on macOS; Docker or the official installer elsewhere), configured only through `DATABASE_URL` in an untracked `.env`. CI uses a PostgreSQL 17 service container. Deployed environments (later issues) use hosted PostgreSQL such as Neon, as the blueprint plans, with separate preview and production databases.
 

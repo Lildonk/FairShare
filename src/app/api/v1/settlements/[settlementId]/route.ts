@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { toSettlementDto } from '@/lib/api/ledger-dto';
 import { validateStatusInput } from '@/lib/api/settlement-input';
 import { assertGroupWritable, requireUser } from '@/lib/auth/current-user';
+import { recordAuditEvent } from '@/lib/db/audit-log';
 import { prisma } from '@/lib/db/prisma';
 import { HttpError, errorResponse, readJson } from '@/lib/http/responses';
 
@@ -37,9 +38,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (count === 0) {
         throw new HttpError(409, 'settlement_not_pending', 'This payment was already confirmed or disputed.');
       }
-      return tx.settlement.findUniqueOrThrow({ where: { id: settlement.id } });
+      const changed = toSettlementDto(await tx.settlement.findUniqueOrThrow({ where: { id: settlement.id } }));
+      await recordAuditEvent(tx, {
+        groupId: settlement.groupId,
+        actorId: user.id,
+        action: 'SETTLEMENT_STATUS_CHANGED',
+        entityId: changed.id,
+        snapshot: changed,
+      });
+      return changed;
     });
-    return NextResponse.json({ settlement: toSettlementDto(updated) });
+    return NextResponse.json({ settlement: updated });
   } catch (error) {
     return errorResponse(error);
   }
