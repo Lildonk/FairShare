@@ -191,8 +191,8 @@ Every pull request (whatever its base branch) and every push to `main` runs two 
 
 **Deploy** ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)) puts the app on Vercel with Neon PostgreSQL:
 
-- **Preview per PR:** each PR gets its own Neon database branch (`preview/pr-<n>`, migrated and seeded with the demo data) and its own Vercel preview URL, posted as a PR comment. Closing the PR deletes the branch.
-- **Production:** after CI passes on `main`, the workflow applies the migrations to the production database and deploys that commit. Production is never seeded.
+- **Preview per PR:** each PR gets its own database branch (`preview/pr-<n>`, migrated and seeded with the demo data) in a separate Neon project that never holds production data, and its own Vercel preview URL, posted as a PR comment. Closing the PR deletes the branch.
+- **Production:** after CI passes on `main`, the workflow builds that commit, applies the migrations to the production database, and deploys it. Production is never seeded.
 
 Setup, environments, secrets, and rollback: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
