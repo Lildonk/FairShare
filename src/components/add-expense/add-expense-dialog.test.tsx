@@ -328,6 +328,16 @@ describe('AddExpenseDialog', () => {
       alreadyInert.remove();
     });
 
+    it('keeps focus in the dialog when plain text inside it is clicked (#42 review)', async () => {
+      const { user, onCancel } = setup();
+
+      await user.click(screen.getByRole('heading', { name: 'Add expense' }));
+      expect(screen.getByRole('dialog')).toHaveFocus();
+      await user.keyboard('{Escape}');
+
+      expect(onCancel).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps focus in the dialog when the backdrop is clicked, so Escape still closes it', async () => {
       const { user, onCancel } = setup();
       const backdrop = screen.getByRole('dialog').parentElement as HTMLElement;
