@@ -40,5 +40,6 @@ test.describe('registration, sign-in, and protected pages', () => {
 
     await submitSignIn(page, email);
     await expect(page).toHaveURL(/\/groups$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Your groups' })).toBeVisible();
   });
 });

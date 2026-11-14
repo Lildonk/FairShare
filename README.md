@@ -127,10 +127,9 @@ Until then, the Google button shows "Google sign-in isn't set up yet."
 ### End-to-end tests
 
 The Playwright tests in `tests/e2e/` drive Chromium through the real app:
-- registration
-- sign-in and sign-out
-- a wrong password
-- a protected page that sends you to sign in and back
+- **The critical workflow** (`group-flow.spec.ts`): two people in separate sessions register; one creates a group and the other joins with its invite code; an expense is added through the dialog; the balances and the suggested transfer appear; the receiver records the payment; and both see the group settled up after a reload.
+- **Access** (`access.spec.ts`): a member opening `/admin` sees "Admins only"; an outsider gets a not-found page for a group; an admin archives a group, after which its members can read it but not add expenses, and its invite code is refused; joining with an invite code adds the group to your list.
+- **Sign-in** (`auth.spec.ts`): registration, sign-in and sign-out, a wrong password, and a protected page that sends you to sign in and back.
 
 To run them locally:
 

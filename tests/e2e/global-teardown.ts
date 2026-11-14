@@ -8,10 +8,15 @@ import { E2E_EMAIL_DOMAIN, E2E_GROUP_PREFIX } from './fixtures';
  */
 export default async function globalTeardown(): Promise<void> {
   const e2eEmail = { endsWith: `@${E2E_EMAIL_DOMAIN}` };
+  const e2eGroups = { name: { startsWith: E2E_GROUP_PREFIX }, members: { every: { user: { email: e2eEmail } } } };
   try {
-    await prisma.group.deleteMany({
-      where: { name: { startsWith: E2E_GROUP_PREFIX }, members: { every: { user: { email: e2eEmail } } } },
+    // Audit events (#8) block deleting their group and actor, and the database allows deleting them
+    // only in a transaction that turns on the maintenance switch. Test cleanup only.
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SET LOCAL fairshare.audit_maintenance = 'on'`;
+      await tx.auditEvent.deleteMany({ where: { OR: [{ group: e2eGroups }, { actor: { email: e2eEmail } }] } });
     });
+    await prisma.group.deleteMany({ where: e2eGroups });
     await prisma.user.deleteMany({ where: { email: e2eEmail } });
   } finally {
     await prisma.$disconnect();
