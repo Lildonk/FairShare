@@ -157,6 +157,36 @@ describe('GroupDashboard', () => {
     expect(refresh).toHaveBeenCalled();
   });
 
+  it('confirms a pending payment to the viewer through the API and refreshes the page', async () => {
+    const pending = { id: 's-1', fromUserId: carol.id, toUserId: alice.id, amountCents: 3000, status: 'PENDING' as const };
+    fetchMock.mockResolvedValue(jsonResponse(200, { settlement: { ...pending, status: 'CONFIRMED' } }));
+    const user = userEvent.setup();
+    render(<GroupDashboard {...props({ currentUserId: alice.id, settlements: [pending] })} />);
+
+    await user.click(screen.getByRole('button', { name: 'Confirm payment: Carol paid Alice $30.00' }));
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/v1/settlements/s-1');
+    expect(init?.method).toBe('PATCH');
+    expect(JSON.parse(String(init?.body))).toEqual({ status: 'CONFIRMED' });
+    expect(await screen.findByText('Confirmed: Carol paid Alice $30.00.')).toBeInTheDocument();
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it('reports a refused confirmation and keeps the payment pending', async () => {
+    const pending = { id: 's-1', fromUserId: carol.id, toUserId: alice.id, amountCents: 3000, status: 'PENDING' as const };
+    fetchMock.mockResolvedValue(
+      jsonResponse(409, { code: 'settlement_not_pending', message: 'This payment was already confirmed or disputed.' }),
+    );
+    const user = userEvent.setup();
+    render(<GroupDashboard {...props({ currentUserId: alice.id, settlements: [pending] })} />);
+
+    await user.click(screen.getByRole('button', { name: 'Dispute payment: Carol paid Alice $30.00' }));
+
+    expect(await screen.findByText('Couldn’t dispute Carol’s payment to Alice. Please try again.')).toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it('flags an expense through the dispute endpoint, and reports a refusal', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(200, { expense: { id: 'e-1', isDisputed: true } }));
     fetchMock.mockResolvedValueOnce(jsonResponse(409, { code: 'group_archived', message: 'Archived.' }));
@@ -181,6 +211,7 @@ describe('GroupDashboard', () => {
     expect(screen.queryByRole('button', { name: 'Add expense' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Record payment/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Flag for review/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Confirm payment/ })).not.toBeInTheDocument();
     expect(screen.getByText('This group is archived, so payments can’t be recorded.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Export CSV' })).toBeInTheDocument();
   });

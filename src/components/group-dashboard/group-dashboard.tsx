@@ -5,7 +5,11 @@ import { useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { ActivityLedger } from '@/components/activity-ledger/activity-ledger';
 import { AddExpenseDialog, type NewExpense } from '@/components/add-expense/add-expense-dialog';
-import { SettlementBoard, type PaymentRequest } from '@/components/settlement-board/settlement-board';
+import {
+  SettlementBoard,
+  type PaymentAnswer,
+  type PaymentRequest,
+} from '@/components/settlement-board/settlement-board';
 import { TransactionGraph } from '@/components/transaction-graph/transaction-graph';
 import type { LedgerExportRow } from '@/lib/audit/ledger-export';
 import type { Transfer } from '@/lib/finance/debt-simplification';
@@ -77,6 +81,14 @@ export function GroupDashboard({ currentUserId, group, expenses, settlements, tr
     return settlement;
   };
 
+  const respondToPayment = async (settlementId: string, status: PaymentAnswer): Promise<SettlementRecord> => {
+    const response = await sendJson(`/api/v1/settlements/${encodeURIComponent(settlementId)}`, 'PATCH', { status });
+    if (!response.ok) throw new Error(await errorMessage(response));
+    const { settlement } = (await response.json()) as { settlement: SettlementRecord };
+    router.refresh();
+    return settlement;
+  };
+
   const toggleDispute = async (expenseId: string, disputed: boolean): Promise<void> => {
     const response = await sendJson(`${api}/expenses/${expenseId}/dispute`, 'PATCH', { disputed });
     if (!response.ok) throw new Error(await errorMessage(response));
@@ -118,6 +130,7 @@ export function GroupDashboard({ currentUserId, group, expenses, settlements, tr
             currentUserId={currentUserId}
             readOnly={readOnly}
             onRecordPayment={recordPayment}
+            onRespondToPayment={respondToPayment}
           />
         </section>
         <section aria-labelledby="graph-heading" className={CARD}>

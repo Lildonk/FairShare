@@ -336,6 +336,160 @@ describe('SettlementBoard', () => {
     });
   });
 
+  describe('payments waiting for confirmation', () => {
+    /** Bob recorded paying Alice $345.00; it stays PENDING until Alice answers. */
+    const bobPending: SettlementRecord = {
+      id: 's-bob',
+      fromUserId: 'u-bob',
+      toUserId: 'u-alice',
+      amountCents: 34500,
+      status: 'PENDING',
+    };
+
+    function setupPending(
+      currentUserId: string | undefined,
+      { readOnly = false, settlements = [bobPending] }: { readOnly?: boolean; settlements?: SettlementRecord[] } = {},
+    ) {
+      const onRecordPayment = vi.fn<(payment: PaymentRequest) => Promise<SettlementRecord>>();
+      const onRespondToPayment =
+        vi.fn<(settlementId: string, status: 'CONFIRMED' | 'DISPUTED') => Promise<SettlementRecord>>();
+      const user = userEvent.setup();
+      render(
+        <SettlementBoard
+          state={ready({ settlements })}
+          currentUserId={currentUserId}
+          readOnly={readOnly}
+          onRecordPayment={onRecordPayment}
+          onRespondToPayment={onRespondToPayment}
+        />,
+      );
+      return { user, onRespondToPayment };
+    }
+
+    function pendingTexts(): string[] {
+      const list = screen.queryByRole('list', { name: 'Payments waiting for confirmation' });
+      if (!list) return [];
+      return within(list)
+        .getAllByTestId('pending-text')
+        .map((item) => item.textContent ?? '');
+    }
+
+    it('lists a pending payment, with who must confirm it, without counting it in the balances', () => {
+      setupPending('u-bob');
+
+      expect(screen.getByRole('heading', { name: 'Waiting for confirmation' })).toBeInTheDocument();
+      expect(pendingTexts()).toEqual(['Bob paid Alice $345.00. Waiting for Alice to confirm.']);
+      expect(chipTexts()).toContain('Bob: owes $345.00');
+    });
+
+    it('shows no pending section when nothing is pending', () => {
+      setupPending('u-alice', {
+        settlements: [{ ...bobPending, status: 'CONFIRMED' }, { ...bobPending, id: 's-2', status: 'DISPUTED' }],
+      });
+
+      expect(screen.queryByRole('heading', { name: 'Waiting for confirmation' })).not.toBeInTheDocument();
+    });
+
+    it('offers Confirm and Dispute only to the receiver, and to no one in an archived group', () => {
+      const confirm = { name: 'Confirm payment: Bob paid Alice $345.00' };
+      const dispute = { name: 'Dispute payment: Bob paid Alice $345.00' };
+
+      for (const viewer of ['u-bob', 'u-charlie']) {
+        const view = render(
+          <SettlementBoard
+            state={ready({ settlements: [bobPending] })}
+            currentUserId={viewer}
+            onRecordPayment={vi.fn()}
+            onRespondToPayment={vi.fn()}
+          />,
+        );
+        expect(screen.queryByRole('button', confirm)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', dispute)).not.toBeInTheDocument();
+        view.unmount();
+      }
+
+      const archived = render(
+        <SettlementBoard
+          state={ready({ settlements: [bobPending] })}
+          currentUserId="u-alice"
+          readOnly
+          onRecordPayment={vi.fn()}
+          onRespondToPayment={vi.fn()}
+        />,
+      );
+      expect(screen.queryByRole('button', confirm)).not.toBeInTheDocument();
+      expect(pendingTexts()).toEqual(['Bob paid Alice $345.00. Waiting for Alice to confirm.']);
+      archived.unmount();
+
+      setupPending('u-alice');
+      expect(screen.getByRole('button', confirm)).toBeInTheDocument();
+      expect(screen.getByRole('button', dispute)).toBeInTheDocument();
+    });
+
+    it('confirms a payment: it counts at once, leaves the list, and the change is announced', async () => {
+      const { user, onRespondToPayment } = setupPending('u-alice');
+      onRespondToPayment.mockResolvedValue({ ...bobPending, status: 'CONFIRMED' });
+
+      await user.click(screen.getByRole('button', { name: 'Confirm payment: Bob paid Alice $345.00' }));
+
+      expect(onRespondToPayment).toHaveBeenCalledWith('s-bob', 'CONFIRMED');
+      expect(await screen.findByText('Confirmed: Bob paid Alice $345.00.')).toBeInTheDocument();
+      expect(pendingTexts()).toEqual([]);
+      expect(chipTexts()).toContain('Bob: settled up');
+      expect(chipTexts()).toContain('Alice: gets back $229.00');
+    });
+
+    it('disputes a payment: it leaves the list and never counts', async () => {
+      const { user, onRespondToPayment } = setupPending('u-alice');
+      onRespondToPayment.mockResolvedValue({ ...bobPending, status: 'DISPUTED' });
+
+      await user.click(screen.getByRole('button', { name: 'Dispute payment: Bob paid Alice $345.00' }));
+
+      expect(onRespondToPayment).toHaveBeenCalledWith('s-bob', 'DISPUTED');
+      expect(await screen.findByText('Disputed: Bob paid Alice $345.00.')).toBeInTheDocument();
+      expect(pendingTexts()).toEqual([]);
+      expect(chipTexts()).toContain('Bob: owes $345.00');
+    });
+
+    it('keeps the payment pending and explains a failed answer', async () => {
+      const { user, onRespondToPayment } = setupPending('u-alice');
+      onRespondToPayment.mockRejectedValue(new Error('409'));
+
+      await user.click(screen.getByRole('button', { name: 'Confirm payment: Bob paid Alice $345.00' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Couldn’t confirm Bob’s payment to Alice. Please try again.',
+      );
+      expect(pendingTexts()).toEqual(['Bob paid Alice $345.00. Waiting for Alice to confirm.']);
+      expect(chipTexts()).toContain('Bob: owes $345.00');
+    });
+
+    it('ignores a second click while the answer is saving', async () => {
+      const { user, onRespondToPayment } = setupPending('u-alice');
+      const saving = deferred<SettlementRecord>();
+      onRespondToPayment.mockReturnValue(saving.promise);
+
+      await user.click(screen.getByRole('button', { name: 'Confirm payment: Bob paid Alice $345.00' }));
+      await user.click(screen.getByRole('button', { name: 'Dispute payment: Bob paid Alice $345.00' }));
+
+      expect(onRespondToPayment).toHaveBeenCalledTimes(1);
+      saving.resolve({ ...bobPending, status: 'CONFIRMED' });
+      await screen.findByText('Confirmed: Bob paid Alice $345.00.');
+    });
+
+    it('lists a payment the viewer just recorded as pending', async () => {
+      const onRecordPayment = vi.fn<(payment: PaymentRequest) => Promise<SettlementRecord>>();
+      onRecordPayment.mockResolvedValue(bobPending);
+      const user = userEvent.setup();
+      render(<SettlementBoard state={ready()} currentUserId="u-bob" onRecordPayment={onRecordPayment} />);
+
+      await user.click(screen.getByRole('button', { name: 'Record payment: Bob pays Alice $345.00' }));
+
+      await screen.findByText('Bob’s payment to Alice is waiting for confirmation.');
+      expect(pendingTexts()).toEqual(['Bob paid Alice $345.00. Waiting for Alice to confirm.']);
+    });
+  });
+
   describe('loading, empty, and error states', () => {
     it('shows a loading status while data loads', () => {
       setup({ status: 'loading' });
