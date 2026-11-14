@@ -15,8 +15,8 @@ export default defineConfig({
       'prisma/**/*.{test,spec}.ts',
       'tests/**/*.{test,spec}.{ts,tsx}',
     ],
-    // Database tests need PostgreSQL; they run with `npm run test:integration`.
-    exclude: [...configDefaults.exclude, 'tests/integration/**'],
+    // Database tests need PostgreSQL and run with `npm run test:integration`; browser tests run with `npm run test:e2e`.
+    exclude: [...configDefaults.exclude, 'tests/integration/**', 'tests/e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
