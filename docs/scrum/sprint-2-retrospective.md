@@ -10,16 +10,16 @@
 | Issue | Owner | Estimate | Result (as of 2026-11-13) |
 | --- | --- | --- | --- |
 | #3 Auth (carried over from Sprint 1) | Zheqi | 5 | Done (#26) |
-| #7 Settlement board and group page | Zichen | 5 | Board and follow-ups merged (#25, #33, #42). #53 and the group page #56 in review |
-| #8 Audit ledger, graph, disputes, export | Zichen | 5 | UI merged (#30, #31, #32, #43). AuditEvent #45 approved; endpoints #54 in review |
+| #7 Settlement board and group page | Zichen | 5 | Merged (#25, #33, #42, #53, #56). Confirm/Dispute for pending payments in review (#62) |
+| #8 Audit ledger, graph, disputes, export | Zichen | 5 | Merged (#30, #31, #32, #43, #45, #54) |
 | #9 Public API and Swagger | Zheqi | 5 | Done (#41, #47) |
-| #10 Playwright E2E | Zheqi | 5 | Setup and sign-in flows in review (#52). Full group flow to follow |
-| #11 Admin portal and archiving | Zheqi | 5 | In review (#48) |
-| #24 CI/CD, security scanning, deploys | Zichen | 5 | Pipeline, scanning, and the Next 15 upgrade merged (#27, #44, #46). Deploys in review (#55) |
-| #50 `/groups` page | Zheqi | 2 | In review (#51) |
+| #10 Playwright E2E | Zheqi | 5 | Setup and sign-in flows merged (#52). Group-flow and access tests in final review (#60, #61) |
+| #11 Admin portal and archiving | Zheqi | 5 | Done (#48) |
+| #24 CI/CD, security scanning, deploys | Zichen | 5 | Merged (#27, #44, #46, #55), plus the production engine fix (#63) |
+| #50 `/groups` page | Zheqi | 2 | Done (#51, #64, #65) |
 | #57 Documentation package | Zichen | 2 | This PR |
 
-**Velocity:** 10 of the 39 planned points (#3 and #9, including #3's 5 carried over) were fully merged by 2026-11-13. Most of the rest was merged in part or in review. Final numbers go here at submission.
+**Velocity:** 32 of the 39 planned points were merged by submission day (2026-11-15): #3, #7, #8, #9, #11, #24, and #50. #10 had its setup and sign-in tests merged (#52) and its group-flow tests in final review (#60, #61); #57 is this PR.
 
 ## What went well
 
@@ -55,4 +55,4 @@
 
 **Zichen Tian:** I implemented #7, #8, and #24 with Claude Code, following the RED stop point in AGENTS.md for every feature PR. Agreeing on the audit-event interface with Zheqi on #8 before writing the migration paid off: #47's handlers only needed one call each. What I'd change is to set up the deployment pipeline in Sprint 1, so reviews could use preview URLs instead of reading diffs.
 
-**Zheqi Lv:** _(to be added by Zheqi)_
+**Zheqi Lv:** I built the API layer (#9: the public calculators, OpenAPI and Swagger UI, then groups, expenses, and settlements), the admin portal (#11), the `/groups` page (#50), and the Playwright suite (#10), all with Claude Code and the RED stop point. Two things worked well: agreeing on the audit-event and route shapes with Zichen on #8 before either of us wrote code, and having the server recompute the dialog's splits with the same finance engines, which the browser test now checks end to end. What I'd change: I let reviews of Zichen's #53 and #54 sit for more than a day, and we deployed too late. The first automated deploy broke every database call (Prisma's engine didn't match Vercel's runtime, fixed in #63), and a smoke check after deploying would have caught it. Next time I'd review requested PRs first and set up hosting in the first sprint.

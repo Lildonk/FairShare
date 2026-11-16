@@ -2,15 +2,15 @@
 
 FairShare is a pair project by **Zheqi Lv** ([@Lildonk](https://github.com/Lildonk)) and **Zichen Tian** ([@tianzach](https://github.com/tianzach)). Ownership followed the blueprint's split: Zheqi led the platform (scaffold, data, auth, API, admin, E2E), and Zichen led the money features (finance engines, expense dialog, settlement board, audit ledger) and CI/CD. Each partner reviewed the other's PRs before merge.
 
-Counts are from GitHub and `git log --all --no-merges` on 2026-11-13, and will be refreshed at submission. Zheqi's commits appear under two git identities ("Zheqi Lv" and "zlv"), so both count as his.
+Counts are from GitHub and `git log --all --no-merges` on 2026-11-15, submission day. Zheqi's commits appear under two git identities ("Zheqi Lv" and "zlv"), so both count as his.
 
 | | Zheqi Lv | Zichen Tian |
 | --- | --- | --- |
-| Commits (all branches, excluding merges) | 67 | 68 |
-| PRs opened | 12 | 21 |
-| Reviews of the partner's PRs | 15 PRs | 6 PRs (#18, #19, #23, #26, #41, #47), plus #48, #51, #52 in progress |
+| Commits (all branches, excluding merges) | 73 | 75 |
+| PRs opened | 16 | 25 |
+| Reviews of the partner's PRs | 20 PRs | 9 PRs (#18, #19, #23, #26, #41, #47, #48, #51, #52) |
 | Sprint 1 standups | 4 | 4 |
-| Sprint 2 standups (on #29) | 1 so far | 3 |
+| Sprint 2 standups (on #29) | 3 | 3 |
 
 ## Who did what
 
@@ -20,7 +20,7 @@ Counts are from GitHub and `git log --all --no-merges` on 2026-11-13, and will b
 - [AGENTS.md](../AGENTS.md), the shared AI rules file:
   - Zheqi wrote v1 (#12) and the UI mockups (#13).
   - Zichen refined v2 from the HW3 experiment (#14, #15).
-  - Both updated it in later PRs: v2.1–v2.2 for #2, v2.3 for #3, and v2.4 for #9.
+  - Zheqi kept it current afterwards: v2.1–v2.2 for #2, v2.3 for #3, and v2.4 for #9.
 - Sprint planning, standups ([Sprint 1](scrum/standups.md), [Sprint 2 #29](https://github.com/Lildonk/FairShare/issues/29)), and retrospectives ([Sprint 1](scrum/sprint-1-retrospective.md), [Sprint 2](scrum/sprint-2-retrospective.md)).
 
 ### Zheqi Lv
@@ -32,8 +32,9 @@ Counts are from GitHub and `git log --all --no-merges` on 2026-11-13, and will b
 | #3 | Email/password and Google sign-in, sessions, route protection, open-redirect and 404-for-non-members fixes | #26 |
 | #9 | Public calculators, OpenAPI document and Swagger UI; group, expense, and settlement API with server-side share checks | #41, #47 |
 | #11 | Admin portal, group archiving, access-denied page | #48 |
-| #50 | `/groups` page: list, create, and join | #51 |
-| #10 | Playwright setup, sign-in flows, CI stage 5 | #52 |
+| #50 | `/groups` page: list, create, and join; links and Sign out on every signed-in page | #51, #64, #65 |
+| #10 | Playwright setup, sign-in flows, CI stage 5; group-flow and access tests | #52, #60 |
+| #24 | Production fix after the first automated deploy: Prisma's engine for Vercel's runtime | #63 |
 
 ### Zichen Tian
 
