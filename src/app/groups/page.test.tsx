@@ -32,6 +32,7 @@ describe('/groups', () => {
 
     expect(groupsForUser).toHaveBeenCalledWith('u-1');
     expect(screen.getByRole('heading', { level: 1, name: 'Your groups' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Lake Tahoe Trip' })).toHaveAttribute('href', '/groups/g-1');
     expect(screen.getByRole('heading', { name: 'Create a group' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Join a group' })).toBeInTheDocument();

@@ -11,6 +11,7 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
 }));
 
 const user = (role: 'MEMBER' | 'ADMIN') => ({ id: 'u-1', name: 'Bob Smith', role }) as User;
@@ -45,6 +46,7 @@ describe('/admin', () => {
     render(await AdminPage());
 
     expect(screen.getByRole('heading', { level: 1, name: 'Admin' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
     expect(screen.getByRole('table', { name: 'Groups' })).toHaveTextContent('Lake Tahoe Trip');
     expect(screen.getByText('No disputed expenses.')).toBeInTheDocument();
   });
