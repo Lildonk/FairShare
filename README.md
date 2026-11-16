@@ -4,6 +4,7 @@ Multi-party expense sharing web app for groups — with debt simplification, fou
 
 - **Production:** https://fairshare-ruby.vercel.app (Vercel + Neon; see [deployment](docs/DEPLOYMENT.md))
 - **API docs:** `/api/docs` (Swagger UI) and `/api/v1/openapi.json`
+- **Demo video:** https://drive.google.com/file/d/11MWoLjCszj8huxBqRUCyYiJ_9wAXDUXy/view?usp=sharing
 - **Team:** Zheqi Lv ([@Lildonk](https://github.com/Lildonk)) and Zichen Tian ([@tianzach](https://github.com/tianzach)), CS6983 Project 2
 
 ## Documentation
@@ -18,6 +19,8 @@ Multi-party expense sharing web app for groups — with debt simplification, fou
 | [Contribution log](docs/CONTRIBUTIONS.md) | Who did what: issues, PRs, reviews, commits |
 | Scrum | Standups ([Sprint 1](docs/scrum/standups.md), [Sprint 2 #29](https://github.com/Lildonk/FairShare/issues/29)), retrospectives ([Sprint 1](docs/scrum/sprint-1-retrospective.md), [Sprint 2](docs/scrum/sprint-2-retrospective.md)), [milestones](https://github.com/Lildonk/FairShare/milestones) |
 | [UI mockups](docs/mockups/README.md) | The four screen concepts the UI follows |
+| [Demo video](https://drive.google.com/file/d/11MWoLjCszj8huxBqRUCyYiJ_9wAXDUXy/view?usp=sharing) | A walkthrough of the deployed app and how we built it |
+| Individual reflections | [Zheqi Lv](docs/reflections/zheqi-lv.md) |
 
 ## Features
 
