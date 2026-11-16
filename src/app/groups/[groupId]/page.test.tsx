@@ -67,6 +67,7 @@ describe('/groups/[groupId]', () => {
     expect(screen.getByText('invite-123')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'All groups' })).toHaveAttribute('href', '/groups');
     expect(screen.getByRole('button', { name: 'Add expense' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
   });
 
   it('labels an archived group in text and hides its invite code', async () => {

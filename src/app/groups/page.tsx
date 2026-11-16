@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { CreateGroupForm } from '@/components/groups/create-group-form';
 import { GroupList } from '@/components/groups/group-list';
 import { JoinGroupForm } from '@/components/groups/join-group-form';
+import { SiteHeader } from '@/components/site-header';
 import { getSignedInUser } from '@/lib/auth/current-user';
 import { groupsForUser } from '@/lib/db/groups';
 
@@ -20,10 +21,10 @@ export default async function GroupsPage() {
   return (
     // Light background and dark text, whatever the system color scheme (see globals.css).
     <main className="min-h-screen bg-gray-50 text-gray-900">
+      <SiteHeader user={user} />
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
         <header>
           <h1 className="text-2xl font-semibold">Your groups</h1>
-          <p className="mt-1 text-sm text-gray-600">Signed in as {user.name}.</p>
         </header>
         <section aria-label="Group list" className={CARD}>
           <GroupList groups={groups} />
