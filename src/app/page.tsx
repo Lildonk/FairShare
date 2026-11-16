@@ -17,11 +17,29 @@ export default async function HomePage() {
       </p>
 
       {user ? (
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-          <p className="text-gray-700">
-            Signed in as <span className="font-semibold">{user.name}</span>
-          </p>
-          <SignOutButton />
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              href="/groups"
+              className="rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"
+            >
+              Your groups
+            </Link>
+            {user.role === 'ADMIN' && (
+              <Link
+                href="/admin"
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+              >
+                Admin
+              </Link>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <p className="text-gray-700">
+              Signed in as <span className="font-semibold">{user.name}</span>
+            </p>
+            <SignOutButton />
+          </div>
         </div>
       ) : (
         <div className="mt-8 flex gap-3">
