@@ -38,11 +38,12 @@ describe('page protection middleware', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
-  it('keeps members out of admin pages', async () => {
+  it('lets signed-in members reach admin pages, which tell them they are for admins only', async () => {
     const token = await createSessionToken({ userId: 'user-1', role: 'MEMBER' });
     const response = await middleware(request('/admin', token));
 
-    expect(redirectTarget(response)?.pathname).toBe('/');
+    // #11: the page checks the role in the database and explains the refusal, instead of a silent redirect.
+    expect(response.headers.get('x-middleware-next')).toBe('1');
   });
 
   it('lets admins open admin pages', async () => {

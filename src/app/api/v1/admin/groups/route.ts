@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/current-user';
-import { prisma } from '@/lib/db/prisma';
+import { adminGroupOverview } from '@/lib/db/admin';
 import { errorResponse } from '@/lib/http/responses';
 
 export const dynamic = 'force-dynamic';
@@ -9,28 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin(request);
-    const [groups, disputed] = await Promise.all([
-      prisma.group.findMany({
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
-        select: {
-          id: true,
-          name: true,
-          isArchived: true,
-          _count: { select: { members: true, expenses: true } },
-        },
-      }),
-      prisma.expense.groupBy({ by: ['groupId'], where: { isDisputed: true }, _count: { _all: true } }),
-    ]);
-    const disputedByGroup = new Map(disputed.map((row) => [row.groupId, row._count._all]));
-
-    return NextResponse.json({
-      groups: groups.map(({ _count, ...group }) => ({
-        ...group,
-        memberCount: _count.members,
-        expenseCount: _count.expenses,
-        disputedExpenseCount: disputedByGroup.get(group.id) ?? 0,
-      })),
-    });
+    return NextResponse.json({ groups: await adminGroupOverview() });
   } catch (error) {
     return errorResponse(error);
   }

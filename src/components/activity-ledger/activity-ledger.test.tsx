@@ -209,6 +209,30 @@ describe('ActivityLedger', () => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
+    it('clears the old notice when a new attempt starts, so the same message is announced again (#43 review)', async () => {
+      const { user, onToggleDispute } = setup();
+      onToggleDispute.mockResolvedValueOnce();
+      const second = deferred();
+      onToggleDispute.mockReturnValueOnce(second.promise);
+
+      await user.click(screen.getByRole('button', { name: 'Flag for review: Dinner' }));
+      expect(await screen.findByRole('status')).toHaveTextContent('Dinner flagged for review.');
+      await user.click(screen.getByRole('button', { name: 'Clear dispute: Dinner' }));
+
+      expect(screen.getByRole('status')).toHaveTextContent('');
+    });
+
+    it('offers no dispute toggle in a read-only (archived) group', () => {
+      render(
+        <ActivityLedger state={ready()} readOnly onToggleDispute={vi.fn()} exportLinks={exportLinks} />,
+      );
+
+      expect(screen.queryByRole('button', { name: /Flag for review|Clear dispute/ })).not.toBeInTheDocument();
+      // Disputes are still shown in text, and exports still work.
+      expect(within(entry('Charlie paid $47.05 for Taxi')).getByText('Disputed')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Export CSV' })).toBeInTheDocument();
+    });
+
     it('removes the old error when a new attempt starts, so a repeated failure is announced again (#32 review)', async () => {
       const { user, onToggleDispute } = setup();
       onToggleDispute.mockRejectedValueOnce(new Error('Network down'));

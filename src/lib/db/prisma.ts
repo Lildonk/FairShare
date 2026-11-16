@@ -28,6 +28,13 @@ function createPrismaClient() {
 /** The app's database client: Prisma with the integer-amount guard on every write. */
 export type Db = ReturnType<typeof createPrismaClient>;
 
+/**
+ * The `tx` that `prisma.$transaction(async (tx) => ...)` passes to its callback. Use this, not
+ * `Prisma.TransactionClient`: the shared client's `tx` keeps the integer-amount guard, so it is not
+ * assignable to the plain Prisma type, while a raw `new PrismaClient()` would be.
+ */
+export type DbTransaction = Parameters<Parameters<Db['$transaction']>[0]>[0];
+
 // Reuse one client across hot reloads in development; otherwise every edit opens a new connection pool.
 const globalForPrisma = globalThis as unknown as { prisma?: Db };
 

@@ -38,12 +38,16 @@ export type SettlementBoardState =
 
 export interface SettlementBoardProps {
   state: SettlementBoardState;
+  /** The signed-in member. When set, Record payment appears only on transfers they pay or receive. */
+  currentUserId?: string;
+  /** An archived group: balances and transfers are shown, but no payment can be recorded. */
+  readOnly?: boolean;
   /** Saves a payment and resolves with the stored settlement (its status decides whether it counts). */
   onRecordPayment: (payment: PaymentRequest) => Promise<SettlementRecord>;
 }
 
 /** Group settlement board: loading and error states around the ready view. */
-export function SettlementBoard({ state, onRecordPayment }: SettlementBoardProps) {
+export function SettlementBoard({ state, currentUserId, readOnly = false, onRecordPayment }: SettlementBoardProps) {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-900">Settle up</h2>
@@ -65,7 +69,12 @@ export function SettlementBoard({ state, onRecordPayment }: SettlementBoardProps
         </div>
       )}
       {state.status === 'ready' && (
-        <ReadyBoard data={state.data} onRecordPayment={onRecordPayment} />
+        <ReadyBoard
+          data={state.data}
+          currentUserId={currentUserId}
+          readOnly={readOnly}
+          onRecordPayment={onRecordPayment}
+        />
       )}
     </div>
   );
@@ -84,9 +93,13 @@ interface SavedPayment {
 
 function ReadyBoard({
   data,
+  currentUserId,
+  readOnly,
   onRecordPayment,
 }: {
   data: SettlementBoardData;
+  currentUserId: string | undefined;
+  readOnly: boolean;
   onRecordPayment: SettlementBoardProps['onRecordPayment'];
 }) {
   const headingId = useId();
@@ -105,13 +118,17 @@ function ReadyBoard({
   const nameOf = (id: string) => names.get(id) ?? 'Unknown member';
 
   // In-flight payments count as confirmed until the server answers (optimistic update).
-  // A saved payment counts only on top of the data it was saved against: once the page passes
-  // refreshed data, that data is the source of truth and already includes the payment.
+  // A saved payment with an ID counts until refreshed data includes that ID, so it is never counted
+  // twice and never dropped by a refetch that started before the save. Without an ID, it counts only
+  // on top of the data it was saved against.
   // Inconsistent records give null, so the board shows an error instead of crashing.
   const computed = useMemo(() => {
+    const storedIds = new Set(data.settlements.map((s) => s.id).filter((id) => id !== undefined));
+    const stillLocal = ({ basis, settlement }: SavedPayment) =>
+      settlement.id === undefined ? basis === data : !storedIds.has(settlement.id);
     const settlements: SettlementRecord[] = [
       ...data.settlements,
-      ...saved.filter((entry) => entry.basis === data).map((entry) => entry.settlement),
+      ...saved.filter(stillLocal).map((entry) => entry.settlement),
       ...inFlight.map(({ payment }) => ({ ...payment, status: 'CONFIRMED' as const })),
     ];
     try {
@@ -160,6 +177,9 @@ function ReadyBoard({
     }
   };
 
+  const canRecord = (t: Transfer) =>
+    !readOnly && (currentUserId === undefined || currentUserId === t.fromMemberId || currentUserId === t.toMemberId);
+
   const describeTransfer = (t: Transfer) =>
     `${nameOf(t.fromMemberId)} pays ${nameOf(t.toMemberId)} ${formatCents(t.amountCents)}`;
 
@@ -203,6 +223,9 @@ function ReadyBoard({
         <h3 id={transfersHeadingId} className="text-lg font-medium text-gray-900">
           Suggested transfers
         </h3>
+        {readOnly && (
+          <p className="mt-1 text-sm text-gray-600">This group is archived, so payments can’t be recorded.</p>
+        )}
         {data.expenses.length === 0 ? (
           <p className="mt-3 text-gray-600">
             No expenses yet. Add an expense to see who owes whom.
@@ -224,14 +247,16 @@ function ReadyBoard({
                   <span data-testid="transfer-text" className="text-gray-900">
                     {text}
                   </span>
-                  <button
-                    type="button"
-                    aria-label={`Record payment: ${text}`}
-                    onClick={() => void recordPayment(transfer)}
-                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
-                  >
-                    Record payment
-                  </button>
+                  {canRecord(transfer) && (
+                    <button
+                      type="button"
+                      aria-label={`Record payment: ${text}`}
+                      onClick={() => void recordPayment(transfer)}
+                      className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                    >
+                      Record payment
+                    </button>
+                  )}
                 </li>
               );
             })}

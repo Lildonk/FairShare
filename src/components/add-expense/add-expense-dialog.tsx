@@ -29,6 +29,8 @@ export interface AddExpenseDialogProps {
   currentUserId: string;
   onSubmit: (expense: NewExpense) => void;
   onCancel: () => void;
+  /** Why the server refused the last submit. Shown inside the dialog, since the page behind it is inert. */
+  submitError?: string | null;
 }
 
 const SPLIT_MODES: { value: BasicSplitMode; label: string }[] = [
@@ -52,6 +54,7 @@ export function AddExpenseDialog({
   currentUserId,
   onSubmit,
   onCancel,
+  submitError = null,
 }: AddExpenseDialogProps) {
   const id = useId();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -159,14 +162,23 @@ export function AddExpenseDialog({
       <div
         role="dialog"
         aria-modal="true"
+        // Focusable from script only, so a click on plain text inside keeps focus in the dialog
+        // (the APG modal pattern); otherwise it would move to <body> and Escape would do nothing.
+        tabIndex={-1}
         aria-labelledby={titleId}
         onKeyDown={handleKeyDown}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl focus:outline-none"
       >
         <form noValidate onSubmit={handleSubmit} className="space-y-5">
           <h2 id={titleId} className="text-xl font-semibold text-gray-900">
             Add expense
           </h2>
+
+          {submitError && (
+            <p role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+              {submitError}
+            </p>
+          )}
 
           {showErrors && (
             <div role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm">

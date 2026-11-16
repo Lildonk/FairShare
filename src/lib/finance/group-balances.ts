@@ -23,6 +23,8 @@ export interface ExpenseRecord {
 export type SettlementStatus = 'PENDING' | 'CONFIRMED' | 'DISPUTED';
 
 export interface SettlementRecord {
+  /** The stored payment's ID, when it has been saved (ignored by the balance math). */
+  id?: string;
   fromUserId: string;
   toUserId: string;
   amountCents: number;
