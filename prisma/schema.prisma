@@ -9,6 +9,10 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  // The deploy workflow builds on GitHub's Ubuntu runner and uploads the prebuilt output, but
+  // Vercel's functions run on Amazon Linux (OpenSSL 3). "native" alone ships only the build
+  // machine's engine, and every database call then fails in production.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 /// Platform-wide role. ADMIN unlocks only /admin and /api/v1/admin/*; never set it from client input.

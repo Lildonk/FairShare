@@ -1,56 +1,84 @@
-import { expect, test } from '@playwright/test';
-import {
-  createGroupThroughUi,
-  joinGroupThroughUi,
-  openGroup,
-  registerThroughUi,
-  uniqueEmail,
-  uniqueGroupName,
-} from './fixtures';
+import { expect, test, type Page } from '@playwright/test';
+import { E2E_GROUP_PREFIX, registerThroughUi, uniqueEmail } from './fixtures';
 
-// The critical workflow from AGENTS.md: Register → Group → Expense → Settlement, with two people in
-// two separate browser sessions.
-test('two people share an expense and settle up: register, create and join a group, add an expense, record the payment', async ({
-  browser,
-}) => {
-  const ana = await (await browser.newContext()).newPage();
-  const ben = await (await browser.newContext()).newPage();
-  const group = uniqueGroupName('Ski trip');
+/**
+ * The critical group workflow (#10): Register → Group → Expense → Settlement, with two real users
+ * in separate browser sessions, through the UI only.
+ */
+test.describe('group workflow', () => {
+  test('two people share an expense and settle up through the UI', async ({ browser }) => {
+    const groupName = `${E2E_GROUP_PREFIX}Ski Trip ${Date.now().toString(36)}`;
+    const alice = await browser.newContext();
+    const bob = await browser.newContext();
+    const alicePage = await alice.newPage();
+    const bobPage = await bob.newPage();
 
-  await registerThroughUi(ana, 'Ana Organizer', uniqueEmail('ana'));
-  const inviteCode = await createGroupThroughUi(ana, group);
-  await expect(ana.getByRole('link', { name: group })).toBeVisible();
+    try {
+      // Register: both people sign up and are signed in.
+      await registerThroughUi(alicePage, 'Alice Flow', uniqueEmail('alice'));
+      await registerThroughUi(bobPage, 'Bob Flow', uniqueEmail('bob'));
 
-  await registerThroughUi(ben, 'Ben Joiner', uniqueEmail('ben'));
-  await joinGroupThroughUi(ben, group, inviteCode);
-  await expect(ben.getByRole('link', { name: group })).toBeVisible();
+      // Group: Alice creates it and opens it; Bob joins with the invite code.
+      await alicePage.goto('/groups');
+      await alicePage.getByLabel('Group name').fill(groupName);
+      await alicePage.getByRole('button', { name: 'Create group' }).click();
+      await alicePage.getByRole('link', { name: groupName }).click();
+      await expect(alicePage.getByRole('heading', { level: 1, name: groupName })).toBeVisible();
+      const inviteCode = (await alicePage.locator('code').first().textContent())?.trim() ?? '';
+      expect(inviteCode).not.toBe('');
 
-  // Ana adds a $90.01 dinner she paid for, split equally: she takes the leftover cent.
-  await openGroup(ana, group);
-  await ana.getByRole('button', { name: 'Add expense' }).click();
-  const dialog = ana.getByRole('dialog');
-  await dialog.getByLabel('Description').fill('Dinner');
-  await dialog.getByLabel('Amount', { exact: true }).fill('90.01');
-  await dialog.getByLabel('Paid by').selectOption({ label: 'Ana Organizer' });
-  await expect(dialog.getByRole('list', { name: 'Allocation preview' })).toContainText('$45.01');
-  await dialog.getByRole('button', { name: 'Add expense' }).click();
+      await bobPage.goto('/groups');
+      await bobPage.getByLabel('Invite code').fill(inviteCode);
+      await bobPage.getByRole('button', { name: 'Join group' }).click();
+      await expect(bobPage.getByRole('link', { name: groupName })).toBeVisible();
 
-  await expect(ana.getByText('Ana Organizer: gets back $45.00')).toBeVisible();
-  await expect(ana.getByText('Ben Joiner: owes $45.00')).toBeVisible();
+      await alicePage.reload();
+      await expect(alicePage.getByText('Alice Flow, Bob Flow')).toBeVisible();
+      await expect(alicePage.getByText('No expenses yet. Add an expense to see who owes whom.')).toBeVisible();
 
-  // Ben sees the same balances and the transfer that settles them, but he isn't the one who
-  // records it here: Ana, the receiver, does, so it is confirmed at once.
-  await openGroup(ben, group);
-  await expect(ben.getByText('Ben Joiner: owes $45.00')).toBeVisible();
-  await expect(ben.getByRole('list', { name: 'Suggested transfers' })).toContainText('Ben Joiner pays Ana Organizer $45.00');
+      // Expense: Alice pays $90.01 for both, split equally; the extra cent goes to the payer.
+      await alicePage.getByRole('button', { name: 'Add expense' }).click();
+      const dialog = alicePage.getByRole('dialog', { name: 'Add expense' });
+      await dialog.getByLabel('Description').fill('Lift tickets');
+      await dialog.getByLabel('Amount').fill('90.01');
+      await dialog.getByLabel('Paid by').selectOption({ label: 'Alice Flow' });
+      await dialog.getByRole('radio', { name: 'Equal' }).check();
+      const splitAmong = dialog.getByRole('group', { name: 'Split among' });
+      await splitAmong.getByRole('checkbox', { name: 'Alice Flow' }).check();
+      await splitAmong.getByRole('checkbox', { name: 'Bob Flow' }).check();
+      await dialog.getByRole('button', { name: 'Add expense' }).click();
+      await expect(dialog).toHaveCount(0);
 
-  await ana.getByRole('button', { name: 'Record payment: Ben Joiner pays Ana Organizer $45.00' }).click();
-  await expect(ana.getByText('Ana Organizer: settled up')).toBeVisible();
-  await expect(ana.getByText('Ben Joiner: settled up')).toBeVisible();
+      // Balances: Bob owes his $45.00 share; Alice gets it back.
+      await expectBalances(alicePage, ['Alice Flow: gets back $45.00', 'Bob Flow: owes $45.00']);
+      await expect(
+        alicePage.getByRole('list', { name: 'Suggested transfers' }).getByText('Bob Flow pays Alice Flow $45.00'),
+      ).toBeVisible();
 
-  // The settled state is stored, not just shown: a fresh load in Ben's session agrees.
-  await ben.reload();
-  await expect(ben.getByText('Ben Joiner: settled up')).toBeVisible();
-  await expect(ben.getByText('Ana Organizer: settled up')).toBeVisible();
-  await expect(ben.getByRole('button', { name: /^Record payment/ })).toHaveCount(0);
+      // Bob sees the same board after loading the group.
+      await bobPage.getByRole('link', { name: groupName }).click();
+      await expectBalances(bobPage, ['Alice Flow: gets back $45.00', 'Bob Flow: owes $45.00']);
+
+      // Settlement: Alice, the receiver, records Bob's payment, so it counts at once.
+      await alicePage.getByRole('button', { name: 'Record payment: Bob Flow pays Alice Flow $45.00' }).click();
+      await expect(alicePage.getByText('Everyone is settled up.', { exact: true })).toBeVisible();
+
+      // The payment was saved: both see everyone settled after a fresh load.
+      for (const page of [alicePage, bobPage]) {
+        await page.reload();
+        await expectBalances(page, ['Alice Flow: settled up', 'Bob Flow: settled up']);
+        await expect(page.getByText('Everyone is settled up.', { exact: true })).toBeVisible();
+      }
+    } finally {
+      await alice.close();
+      await bob.close();
+    }
+  });
 });
+
+async function expectBalances(page: Page, chips: string[]): Promise<void> {
+  const balances = page.getByRole('list', { name: 'Member balances' });
+  for (const chip of chips) {
+    await expect(balances.getByText(chip)).toBeVisible();
+  }
+}

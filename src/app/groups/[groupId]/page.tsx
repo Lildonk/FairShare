@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { GroupDashboard } from '@/components/group-dashboard/group-dashboard';
+import { SiteHeader } from '@/components/site-header';
 import { getSignedInUser } from '@/lib/auth/current-user';
 import { loadGroupDashboard } from '@/lib/db/group-dashboard';
 
@@ -30,6 +31,7 @@ export default async function GroupPage({ params }: GroupPageProps) {
   return (
     // Light background and dark text, whatever the system color scheme.
     <main className="min-h-screen bg-gray-50 text-gray-900">
+      <SiteHeader user={user} />
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
         <Link
           href="/groups"
